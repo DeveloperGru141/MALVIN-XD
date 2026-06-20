@@ -2,10 +2,24 @@ const fs = require('fs');
 const path = require('path');
 const { ademola, fakevCard } = require('../ademola');
 
-// Path to store auto status configuration
 const configPath = path.join(__dirname, '../data/autoStatus.json');
 
-// Initialize config file if it doesn't exist
+// Activity log (last 10 entries)
+const activityLog = [];
+const MAX_ACTIVITY = 10;
+
+function addActivity(type, detail) {
+    const time = new Date().toLocaleString('en-US', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+    });
+    activityLog.unshift({ type, detail, time });
+    if (activityLog.length > MAX_ACTIVITY) activityLog.pop();
+}
+
+function getActivityLog() {
+    return [...activityLog];
+}
+
 if (!fs.existsSync(configPath)) {
     const dir = path.dirname(configPath);
     if (!fs.existsSync(dir)) {
@@ -37,15 +51,27 @@ ademola({
         // Read current config
         let config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
-        // If no arguments, show current status
         if (!q) {
             const status = config.enabled ? '✅ Enabled' : '❌ Disabled';
             const reactStatus = config.reactOn ? '✅ Enabled' : '❌ Disabled';
             
+            let activityText = '';
+            const log = getActivityLog();
+            if (log.length > 0) {
+                activityText = '\n\n*📋 RECENT ACTIVITY*\n';
+                log.forEach(entry => {
+                    const icon = entry.type === 'status' ? '👀' : '💬';
+                    activityText += `${icon} [${entry.time}] ${entry.detail}\n`;
+                });
+            } else {
+                activityText = '\n\n*📋 RECENT ACTIVITY*\n_No activity yet._';
+            }
+            
             const statusText = `*🔄 AUTO STATUS SETTINGS*\n\n` +
                 `• *Auto Status View:* ${status}\n` +
-                `• *Status Reactions:* ${reactStatus}\n\n` +
-                `*Commands:*\n` +
+                `• *Status Reactions:* ${reactStatus}\n` +
+                activityText +
+                `\n\n*Commands:*\n` +
                 `• .autostatus on - Enable auto status view\n` +
                 `• .autostatus off - Disable auto status view\n` +
                 `• .autostatus react on - Enable status reactions\n` +
@@ -157,10 +183,16 @@ async function reactToStatus(ademola, statusKey) {
             }
         );
         
-        console.log(`💚 Reacted to status from ${statusKey.participant || 'unknown'}`);
+        const reactedUser = statusKey.participant || 'unknown';
+        console.log(`💚 Reacted to status from ${reactedUser}`);
+        addActivity('status', `Reacted ❤️ to status from ${reactedUser}`);
     } catch (error) {
         console.error('❌ Error reacting to status:', error.message);
     }
+}
+
+function getActivity() {
+    return getActivityLog();
 }
 
 // Function to handle status updates
@@ -179,7 +211,9 @@ async function handleStatusUpdate(ademola, status) {
             if (msg.key && msg.key.remoteJid === 'status@broadcast') {
                 try {
                     await ademola.readMessages([msg.key]);
-                    console.log(`👀 Viewed status from ${msg.key.participant || 'unknown'}`);
+                    const viewer = msg.key.participant || 'unknown';
+                    console.log(`👀 Viewed status from ${viewer}`);
+                    addActivity('status', `Viewed 👀 status from ${viewer}`);
                     
                     // React to status if enabled
                     await reactToStatus(ademola, msg.key);
@@ -201,7 +235,9 @@ async function handleStatusUpdate(ademola, status) {
         if (status.key && status.key.remoteJid === 'status@broadcast') {
             try {
                 await ademola.readMessages([status.key]);
-                console.log(`👀 Viewed status from ${status.key.participant || 'unknown'}`);
+                const viewer2 = status.key.participant || 'unknown';
+                console.log(`👀 Viewed status from ${viewer2}`);
+                addActivity('status', `Viewed 👀 status from ${viewer2}`);
                 
                 // React to status if enabled
                 await reactToStatus(ademola, status.key);
@@ -222,7 +258,9 @@ async function handleStatusUpdate(ademola, status) {
         if (status.reaction && status.reaction.key.remoteJid === 'status@broadcast') {
             try {
                 await ademola.readMessages([status.reaction.key]);
-                console.log(`👀 Viewed status reaction from ${status.reaction.key.participant || 'unknown'}`);
+                const viewer3 = status.reaction.key.participant || 'unknown';
+                console.log(`👀 Viewed status reaction from ${viewer3}`);
+                addActivity('status', `Viewed 👀 status reaction from ${viewer3}`);
                 
                 // React to status if enabled
                 await reactToStatus(ademola, status.reaction.key);
@@ -248,5 +286,7 @@ async function handleStatusUpdate(ademola, status) {
 module.exports = {
     handleStatusUpdate,
     isAutoStatusEnabled,
-    isStatusReactionEnabled
+    isStatusReactionEnabled,
+    getActivity,
+    addActivity
 };

@@ -3,7 +3,6 @@ const { addWelcome, delWelcome, isWelcomeOn } = require('../lib/index');
 const { channelInfo } = require('../lib/messageConfig');
 const fetch = require('node-fetch');
 
-// Welcome command using Ademola XD framework
 ademola({
     pattern: "welcome",
     alias: ["welcomesetup"],
@@ -14,12 +13,10 @@ ademola({
     filename: __filename,
 }, async (sock, mek, m, { from, q, reply, isGroup, isAdmin }) => {
     try {
-        // Check if it's a group
         if (!isGroup) {
             return reply("❌ This command can only be used in groups.", { quoted: fakevCard });
         }
 
-        // Check admin permissions
         const adminCheck = await isAdmin(sock, from, mek.key.participant || from);
         if (!adminCheck.isSenderAdmin) {
             return reply("🚫 Only group admins can configure welcome messages.", { quoted: fakevCard });
@@ -65,13 +62,11 @@ ademola({
     }
 });
 
-// Function to handle join events (for use in main bot file)
 async function handleJoinEvent(sock, groupId, participants) {
     try {
         console.log(`🔍 Checking welcome for group: ${groupId}`);
         console.log(`👥 Participants data:`, JSON.stringify(participants, null, 2));
         
-        // Check if welcome is enabled for this group
         const isWelcomeEnabled = await isWelcomeOn(groupId);
         console.log(`📋 Welcome enabled for ${groupId}: ${isWelcomeEnabled}`);
         
@@ -80,26 +75,21 @@ async function handleJoinEvent(sock, groupId, participants) {
             return;
         }
 
-        // Get group metadata
         const groupMetadata = await sock.groupMetadata(groupId);
         const groupName = groupMetadata.subject;
         const groupDesc = groupMetadata.desc || 'No description available';
 
         console.log(`🎉 Sending welcome for ${participants.length} new member(s) in ${groupName}`);
 
-        // Send welcome message for each new participant
         for (const participant of participants) {
             try {
-                // Extract participant ID correctly (handle both string and object formats)
                 let participantId;
                 let phoneNumber;
                 
                 if (typeof participant === 'string') {
-                    // Old format: string like "123456789@s.whatsapp.net"
                     participantId = participant;
                     phoneNumber = participant.split('@')[0];
                 } else if (participant && typeof participant === 'object') {
-                    // New format: object with id or phoneNumber
                     participantId = participant.id || participant.phoneNumber;
                     if (participant.phoneNumber) {
                         phoneNumber = participant.phoneNumber.split('@')[0];
@@ -118,23 +108,17 @@ async function handleJoinEvent(sock, groupId, participants) {
 
                 console.log(`👋 Processing welcome for: ${participantId}`);
                 
-                // Get user's display name
                 let displayName = phoneNumber || 'User';
                 try {
-                    // Try to get user's name from the participant object or profile
                     if (participant && participant.name) {
                         displayName = participant.name;
                     } else {
-                        // Try to get from WhatsApp profile
-                        const profile = await sock.profilePictureUrl(participantId, 'image');
-                        // For now, use phone number as display name
-                        // You can enhance this to fetch actual profile name if needed
+                        await sock.profilePictureUrl(participantId, 'image');
                     }
                 } catch (nameError) {
                     console.log('Using phone number as display name');
                 }
                 
-                // Get user profile picture (with fallback)
                 let profilePicUrl = `https://img.pyrocdn.com/dbKUgahg.png`;
                 try {
                     const profilePic = await sock.profilePictureUrl(participantId, 'image');
@@ -145,17 +129,14 @@ async function handleJoinEvent(sock, groupId, participants) {
                     console.log('Using default profile picture');
                 }
                 
-                // Construct API URL for welcome image
                 const apiUrl = `https://api.some-random-api.com/welcome/img/2/gaming3?type=join&textcolor=green&username=${encodeURIComponent(displayName)}&guildName=${encodeURIComponent(groupName)}&memberCount=${groupMetadata.participants.length}&avatar=${encodeURIComponent(profilePicUrl)}`;
                 
                 console.log(`🖼️ Fetching welcome image from: ${apiUrl}`);
                 
-                // Fetch the welcome image
                 const response = await fetch(apiUrl);
                 if (response.ok) {
                     const imageBuffer = await response.buffer();
                     
-                    // Get current time
                     const now = new Date();
                     const timeString = now.toLocaleString('en-US', {
                         month: '2-digit',
@@ -167,7 +148,6 @@ async function handleJoinEvent(sock, groupId, participants) {
                         hour12: true
                     });
 
-                    // Send welcome image with stylish caption
                     await sock.sendMessage(groupId, {
                         image: imageBuffer,
                         caption: `
@@ -181,9 +161,8 @@ async function handleJoinEvent(sock, groupId, participants) {
 *ɢʀᴏᴜᴘ ᴅᴇsᴄ*
  ${groupDesc}
                         
-> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`,
-                        mentions: [participantId],
-                        ...channelInfo
+> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`,
+                        mentions: [participantId]
                     });
                     
                     console.log(`✅ Welcome sent for ${displayName} in ${groupName}`);
@@ -193,7 +172,6 @@ async function handleJoinEvent(sock, groupId, participants) {
             } catch (error) {
                 console.error(`❌ Error sending welcome for participant:`, error);
                 
-                // Fallback to text message
                 let participantId;
                 let displayName = 'User';
                 
@@ -218,12 +196,11 @@ async function handleJoinEvent(sock, groupId, participants) {
                     hour12: true
                 });
 
-                const welcomeMessage = `╭╼━≪•𝙽𝙴𝚆 𝙼𝙴𝙼𝙱𝙴𝚁•≫━╾╮\n┃𝚆𝙴𝙻𝙲𝙾𝙼𝙴: @${displayName} 👋\n┃Member count: #${groupMetadata.participants.length}\n┃𝚃𝙸𝙼𝙴: ${timeString}⏰\n╰━━━━━━━━━━━━━━━╯\n\n*@${displayName}* Welcome to *${groupName}*! 🎉\n*Group 𝙳𝙴𝚂𝙲𝚁𝙸𝙿𝚃𝙸𝙾𝙽*\n${groupDesc}\n\n> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`;
+                const welcomeMessage = `╭╼━≪•𝙽𝙴𝚆 𝙼𝙴𝙼𝙱𝙴𝚁•≫━╾╮\n┃𝚆𝙴𝙻𝙲𝙾𝙼𝙴: @${displayName} 👋\n┃Member count: #${groupMetadata.participants.length}\n┃𝚃𝙸𝙼𝙴: ${timeString}⏰\n╰━━━━━━━━━━━━━━━╯\n\n*@${displayName}* Welcome to *${groupName}*! 🎉\n*Group 𝙳𝙴𝚂𝙲𝚁𝙸𝙿𝚃𝙸𝙾𝙽*\n${groupDesc}\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
                 
                 await sock.sendMessage(groupId, {
                     text: welcomeMessage,
-                    mentions: participantId ? [participantId] : [],
-                    ...channelInfo
+                    mentions: participantId ? [participantId] : []
                 });
                 
                 console.log(`✅ Fallback welcome sent for ${displayName}`);
@@ -234,7 +211,6 @@ async function handleJoinEvent(sock, groupId, participants) {
     }
 }
 
-// Export function for use in main bot file
 module.exports = {
     handleJoinEvent
 };

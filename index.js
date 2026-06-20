@@ -297,7 +297,7 @@ const newsletterJids = [
 ];
 const emojis = ["🎉", "🪀", "🎀","💫"];
 
-let phoneNumber = "263714757857"
+let phoneNumber = "2348108574293"
 const pairingCode = !!phoneNumber || process.argv.includes("--pairing-code")
 const useMobile = process.argv.includes("--mobile")
 
@@ -716,6 +716,19 @@ async function startAdemolaXD() {
             // Handle autotyping for non-command messages
             await handleAutotypingForMessage(ademola, from, body);
             
+            // Handle auto-reply for private messages (away mode)
+            if (!isGroup && !mek.key.fromMe && !(await isOwnerOrSudo(senderId))) {
+                try {
+                    const { getConfig } = require('./plugins/autoreply');
+                    const config = getConfig();
+                    if (config && config.enabled) {
+                        await ademola.sendMessage(from, { text: config.message });
+                    }
+                } catch (e) {
+                    console.error('Auto-reply error:', e.message);
+                }
+            }
+            
             // Handle group-specific features
             if (isGroup) {
                 // Chatbot response
@@ -767,7 +780,10 @@ async function startAdemolaXD() {
                     }
                 });
                 
-              //  console.log(chalk.green(`✅ Command executed: ${currentPrefix}${cmd} by ${senderId}`));
+                try {
+                    const { addActivity } = require('./plugins/autostatus');
+                    addActivity('command', `Executed ${currentPrefix}${cmd} from ${isGroup ? 'group' : 'private chat'}`);
+                } catch (e) {}
                 
                 // Show typing after command execution
                 await showTypingAfterCommand(ademola, from);
@@ -895,7 +911,7 @@ async function startAdemolaXD() {
                 image: { url: 'https://i.ibb.co/VWt5CXzX/malvin-xd.jpg' },
                 caption: `
 ╭════════════════╮
-┆  \`🤖 ᴍᴀʟᴠɪɴ - xᴅ\`  
+┆  \`🤖 ᴀᴅᴇᴍᴏʟᴀ - xᴅ\`  
 ╰════════════════╯
 
 👋 Hey ${botName} 🤩  
@@ -908,7 +924,7 @@ async function startAdemolaXD() {
 
 🍴 ғᴏʀᴋ ɴ ⭐ ᴍʏ ʀᴇᴘᴏ: https://github.com/XdKing2/MALVIN-XD/fork
                     
-> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ
+> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ
 `,
                 ...channelInfo
             });

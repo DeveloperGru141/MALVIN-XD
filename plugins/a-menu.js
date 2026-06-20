@@ -5,7 +5,7 @@ const { channelInfo } = require('../lib/messageConfig');
 const axios = require('axios');
 const moment = require('moment-timezone');
 const { getPrefix } = require('../lib/prefix');
-const { loadSettings } = require('../lib/settingsManager'); // Add this
+const { loadSettings } = require('../lib/settingsManager');
 
 const toTinyCaps = (text) => {
     const tinyCapsMap = {
@@ -16,10 +16,9 @@ const toTinyCaps = (text) => {
     return text.toLowerCase().split('').map(c => tinyCapsMap[c] || c).join('');
 };
 
-// Function to fetch GitHub repository forks
 const fetchGitHubForks = async () => {
     try {
-        const repo = 'XdKing2/ADEMOLA-XD';
+        const repo = 'XdKing2/MALVIN-XD';
         const response = await axios.get(`https://api.github.com/repos/${repo}`);
         return response.data.forks_count || 'ɴ/ᴀ';
     } catch (e) {
@@ -28,7 +27,6 @@ const fetchGitHubForks = async () => {
     }
 };
 
-// Get current prefix
 function getCurrentPrefix() {
     try {
         const prefix = getPrefix();
@@ -38,475 +36,43 @@ function getCurrentPrefix() {
     }
 }
 
-// Category menus - UPDATED WITH ALL COMMANDS
-const getCategoryMenus = (prefix) => ({
-'1': `\`🤖 *AI & CHAT TOOLS*\`
+const categoryMap = {
+    '1': { name: 'AI & CHAT TOOLS', cats: ['AI'] },
+    '2': { name: 'DOWNLOAD MANAGER', cats: ['DOWNLOAD', 'DOWNLOADER'] },
+    '3': { name: 'FUN & GAMES', cats: ['FUN', 'GAME'] },
+    '4': { name: 'GROUP MANAGEMENT', cats: ['GROUP'] },
+    '5': { name: 'UTILITIES & TOOLS', cats: ['GENERAL', 'INFO', 'TOOLS', 'SEARCH', 'STALK', 'UTILITY', 'WHATSAPP', 'MAIN'] },
+    '6': { name: 'MEDIA & STICKERS', cats: ['MEDIA', 'STICKER', 'MAKER', 'AUDIO'] },
+    '7': { name: 'BOT SETTINGS', cats: ['SETTINGS', 'SECURITY', 'MODERATION'] },
+    '8': { name: 'TEXT & EFFECTS', cats: ['TEXTMAKER'] },
+    '9': { name: 'IMAGE & FILTERS', cats: ['IMAGE'] },
+};
 
-┌─・❥
-│💬 ᴄʜᴀᴛ ʙᴏᴛs
-├─・❥
-│ • gcbot
-│ • gemini
-│ • gpt
-│ • gpt5
-│ • venice
-│ • think
-│ • copilot
-└─・❥
-│🎨 ᴀɪ ɢᴇɴᴇʀᴀᴛᴏʀs
-├─・❥
-│ • sora
-│ • tofigure
-│ • creart
-└─・❥
-│📄 ᴅᴏᴄᴜᴍᴇɴᴛ ᴀɪ
-├─・❥
-│ • docanalyze
-└─・❥
+function getCategoryMenus(prefix) {
+    const menus = {};
+    for (const [key, { name, cats }] of Object.entries(categoryMap)) {
+        const cmds = commands.filter(c =>
+            cats.includes((c.category || '').toUpperCase()) &&
+            c.pattern &&
+            !c.dontAddCommandList &&
+            c.pattern !== '([1-9])'
+        );
+        let text = `╭─── \`📁 ${name}\` ───╮\n\n`;
+        cmds.forEach(cmd => {
+            const desc = cmd.desc ? ` — ${cmd.desc}` : '';
+            text += `▸ *${prefix}${cmd.pattern}*${desc}\n`;
+        });
+        text += `\n╰─ 💡 Send "0" for main menu ─╯`;
+        menus[key] = text;
+    }
+    return menus;
+}
 
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "0" for main menu*`,
-
-'2': `\`📥 *DOWNLOAD MANAGER*\`
-
-┌─・❥
-│🎵 ᴍᴜsɪᴄ & ᴀᴜᴅɪᴏ
-├─・❥
-│ • play
-│ • song
-│ • spotify
-└─・❥
-│🎬 ᴠɪᴅᴇᴏ & ᴍᴇᴅɪᴀ
-├─・❥
-│ • video
-│ • instagram
-│ • facebook
-│ • tiktok
-│ • twitter
-└─・❥
-│📱 ᴏᴛʜᴇʀ ᴘʟᴀᴛғᴏʀᴍs
-├─・❥
-│ • telegram
-│ • mega
-│ • mediafire
-│ • gdrive
-│ • gitclone
-│ • githubdl
-└─・❥
-│🖼️ ᴡᴀʟʟᴘᴀᴘᴇʀs & ᴀᴘᴘs
-├─・❥
-│ • 4kwallpaper
-│ • apk
-│ • npm
-│ • npminfo
-└─・❥
-│❓ ʜᴇʟᴘ ɢᴜɪᴅᴇs
-├─・❥
-│ • fbhelp
-│ • ighelp
-│ • spotifyhelp
-│ • videohelp
-└─・❥
-
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "0" for main menu*`,
-
-'3': `\`🎮 *FUN & GAMES*\`
- 
-┌─・❥
-│🎭 ʀᴇᴀᴄᴛɪᴏɴs
-├─・❥
-│ • cry 😢
-│ • hug 🤗  
-│ • kiss 💋
-│ • pat 🫂
-│ • poke 👉
-│ • nom 🍖
-│ • facepalm 🤦
-│ • wink 😉
-│ • slap 👋
-│ • highfive ✋
-└─・❥
-│🤪 ᴊᴏᴋᴇs & ᴛᴇxᴛ
-├─・❥
-│ • meme 
-│ • joke 
-│ • fact 
-│ • quote 
-│ • shayari 
-│ • compliment 
-│ • insult 
-│ • flirt 
-│ • imawesome 
-│ • stupid 
-└─・❥
-│🎯 ɢᴀᴍᴇs
-├─・❥
-│ • tictactoe
-│ • tod 
-│ • truth
-│ • dare 
-│ • wyr 
-│ • surrender
-│ • ship
-│ • simp
-└─・❥
-│🌸 ᴀɴɪᴍᴇ
-├─・❥
-│ • animu 
-│ • character
-│ • chartest 
-│ • mychar 
-└─・❥
-│✨ sᴘᴇᴄɪᴀʟ
-├─・❥
-│ • emojimix 
-│ • goodnight 
-│ • roseday 
-│ • nice 
-└─・❥
-
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "0" for main menu*`,
-
-'4': `\`💬 *GROUP MANAGEMENT*\`
-
-┌─・❥
-│👑 ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟ
-├─・❥
-│ • promote
-│ • demote
-│ • kick
-│ • groupadd
-│ • gcban
-│ • gcunban
-│ • leave
-└─・❥
-│🔇 ᴄʜᴀᴛ ᴄᴏɴᴛʀᴏʟ
-├─・❥
-│ • mute
-│ • unmute
-│ • warn
-│ • warnings
-│ • closetime
-└─・❥
-│📢 ᴛᴀɢɢɪɴɢ
-├─・❥
-│ • tag
-│ • tagall
-│ • hidetag
-│ • tagnotadmin
-└─・❥
-│🛡️ ᴀɴᴛɪ sʏsᴛᴇᴍ
-├─・❥
-│ • antilink
-│ • antibadword
-│ • antitag
-└─・❥
-│🏠 ɢʀᴏᴜᴘ sᴇᴛᴜᴘ
-├─・❥
-│ • welcome
-│ • goodbye
-│ • groupinfo
-│ • groupstats
-│ • staff
-│ • top
-│ • invite
-│ • resetlink
-│ • join
-│ • poll
-│ • pin
-└─・❥
-│⚙️ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs
-├─・❥
-│ • setgname
-│ • setgdesc
-│ • setgpp
-│ • groupsettings
-│ • acceptall
-│ • rejectall
-│ • requestlist
-└─・❥
-
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "0" for main menu*`,
-
-'5': `\`🛠️ *UTILITIES & TOOLS*\`
-
-┌─・❥
-│⚡ ʙᴏᴛ ɪɴғᴏ
-├─・❥
-│ • ping
-│ • menu
-│ • prefix
-│ • help
-│ • repo
-│ • alive
-│ • owner
-└─・❥
-│🌐 ᴡᴇʙ ᴛᴏᴏʟs
-├─・❥
-│ • ss
-│ • translate
-│ • detectlang
-│ • langcodes
-│ • webzip
-│ • abellashort
-└─・❥
-│🔍 sᴇᴀʀᴄʜ
-├─・❥
-│ • img
-└─・❥
-│👤 sᴛᴀʟᴋ
-├─・❥
-│ • githubstalk
-│ • tiktokstalk
-│ • wastalk
-│ • xstalk
-│ • ytstalk
-└─・❥
-│🗑️ ᴄʟᴇᴀɴᴜᴘ
-├─・❥
-│ • clear
-│ • clearall
-│ • del
-│ • delete
-└─・❥
-│📱 ᴡʜᴀᴛsᴀᴘᴘ
-├─・❥
-│ • newsletter
-│ • newsletter2
-└─・❥
-
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "0" for main menu*`,
-
-'6': `\`🎨 *MEDIA & STICKERS*\`
-
-┌─・❥
-│🖼️ sᴛɪᴄᴋᴇʀ ᴛᴏᴏʟs
-├─・❥
-│ • sticker
-│ • simage
-│ • take
-│ • crop
-│ • tg
-└─・❥
-│✨ sᴘᴇᴄɪᴀʟ ᴇғғᴇᴄᴛs
-├─・❥
-│ • emojimix
-│ • attp
-│ • gif
-│ • brat
-│ • brat2
-│ • bratvid
-└─・❥
-│📱 sᴏᴄɪᴀʟ sᴛɪᴄᴋᴇʀs
-├─・❥
-│ • igs
-│ • igshelp
-│ • takehelp
-└─・❥
-│👀 ᴠɪᴇᴡ ᴏɴᴄᴇ & ᴄᴏɴᴠᴇʀᴛ
-├─・❥
-│ • viewonce
-│ • toaudio
-│ • tomp3
-│ • tovideo
-│ • tovn
-└─・❥
-
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "0" for main menu*`,
-
-'7': `\`⚙️ *BOT SETTINGS*\`
-
-┌─・❥
-│🌍 ʙᴏᴛ ᴍᴏᴅᴇ
-├─・❥
-│ • mode
-│ • setprefix
-│ • resetprefix
-└─・❥
-│🔧 ʙᴏᴛ sᴇᴛᴛɪɴɢs
-├─・❥
-│ • setpp
-│ • setowner
-│ • setownername
-│ • setbotname
-│ • setbotimage
-│ • setbotaudio
-│ • settings
-│ • update
-└─・❥
-│🤖 ᴀᴜᴛᴏᴍᴀᴛɪᴏɴ
-├─・❥
-│ • autoreact
-│ • autostatus
-│ • autotyping
-│ • autoread
-└─・❥
-│🛡️ sᴇᴄᴜʀɪᴛʏ
-├─・❥
-│ • anticall
-│ • antidelete
-└─・❥
-│🔔 ɴᴏᴛɪғɪᴄᴀᴛɪᴏɴs
-├─・❥
-│ • mention
-│ • setmention
-└─・❥
-│💾 ᴜᴛɪʟɪᴛɪᴇs
-├─・❥
-│ • save
-│ • tourl
-│ • tourl2
-└─・❥
-
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "0" for main menu*`,
-
-'8': `\`👑 *OWNER COMMANDS*\`
-
-┌─・❥
-│🔧 ʙᴏᴛ sᴇᴛᴛɪɴɢs
-├─・❥
-│ • setpp
-│ • setowner
-│ • setownername
-│ • setbotname
-│ • setbotimage
-│ • setbotaudio
-│ • settings
-│ • env
-│ • resetsettings 
-│ • update
-└─・❥
-│🗂️ sᴇssɪᴏɴ ᴍɢᴍᴛ
-├─・❥
-│ • clearsession
-│ • backupsession
-│ • sessioninfo
-└─・❥
-│🧹 ᴄʟᴇᴀɴᴜᴘ
-├─・❥
-│ • cleartmp
-│ • purge
-│ • clearstore
-│ • checkstore
-└─・❥
-│👥 sᴜᴅᴏ ᴍɢᴍᴛ
-├─・❥
-│ • addsudo
-│ • delsudo
-│ • sudolist
-│ • sudohelp
-└─・❥
-│🚫 ᴜsᴇʀ ᴄᴏɴᴛʀᴏʟ
-├─・❥
-│ • ban
-│ • unban
-│ • banlist
-└─・❥
-│👤 ᴘʀᴏғɪʟᴇ & ᴍᴇᴅɪᴀ
-├─・❥
-│ • getpp
-│ • vv2
-└─・❥
-
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "menu"*`,
-
-'9': `\`📝 *TEXT & EFFECTS*\`
-
-┌─・❥
-│✨ ᴛᴇxᴛ ᴇғғᴇᴄᴛs
-├─・❥
-│ • textmaker
-│ • metallic
-│ • neon
-│ • fire
-│ • ice
-│ • glitch
-│ • matrix
-│ • hacker
-│ • blackpink
-│ • thunder
-│ • snow
-│ • devil
-│ • 1917
-│ • arena
-│ • impressive
-│ • leaves
-│ • light
-│ • purple
-│ • sand
-└─・❥
-│🎨 ᴛᴇxᴛ ᴍᴀᴋᴇʀs
-├─・❥
-│ • brat
-│ • brat2
-│ • bratvid
-└─・❥
-
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "0" for main menu*`,
-
-'10': `\`🖼️ *IMAGE & FILTERS*\`
-
-┌─・❥
-│🎭 ᴇᴍᴏᴊɪ ғɪʟᴛᴇʀs
-├─・❥
-│ • heart
-│ • horny
-│ • lgbt
-│ • lolice
-│ • jail
-│ • triggered
-│ • passed
-│ • gay
-│ • glass
-│ • comrade
-└─・❥
-│🖼️ ɪᴍᴀɢᴇ ᴇғғᴇᴄᴛs
-├─・❥
-│ • circle
-│ • wasted
-│ • simpcard
-│ • its-so-stupid
-│ • blur
-│ • grey
-│ • invert
-│ • blurimg
-└─・❥
-│📱 sᴏᴄɪᴀʟ ᴍᴏᴄᴋᴜᴘs
-├─・❥
-│ • tweet
-│ • ytcomment
-│ • namecard
-│ • ad
-│ • imgjoke
-│ • nokia
-│ • wanted
-└─・❥
-│🗿 ᴍᴇᴍᴇ ᴛᴇᴍᴘʟᴀᴛᴇs
-├─・❥
-│ • oogway
-│ • oogway2
-│ • tonikawa
-│ • lied
-└─・❥
-
-💡 *Usage: ${prefix}command*
-↩️ *Back: Send "0" for main menu*`
-});
-
-// Store active listeners to prevent duplicates
 const activeListeners = new Map();
 
 ademola({
     pattern: "menu",
-    alias: ["m", "allmenu",],
+    alias: ["m", "allmenu"],
     desc: "Show all bot commands in organized categories",
     category: "general",
     react: "📚",
@@ -514,54 +80,43 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, reply, prefix, sender }) => {
     try {
-        // Load current settings
         const currentSettings = loadSettings();
-         
-        // Count total commands (excluding hidden ones)
-        const totalCommands = commands.filter(cmd => 
+
+        const totalCommands = commands.filter(cmd =>
             cmd.category && cmd.pattern && !cmd.dontAdd
         ).length;
-        
-        // Use current settings with fallbacks
+
         const timezone = currentSettings.timezone || settings.timezone || 'Africa/Harare';
         const time = moment().tz(timezone).format('HH:mm:ss');
         const date = moment().tz(timezone).format('DD/MM/YYYY');
         const forks = await fetchGitHubForks();
         const currentPrefix = getCurrentPrefix();
-        
+
         const mainMenu = `
-\`🤖 ${toTinyCaps(currentSettings.botName || settings.botName || 'ademola-xd')}\`
-╭─────────➣
-│↠👤 ᴏᴡɴᴇʀ : ${toTinyCaps(currentSettings.botOwner || settings.botOwner || 'ᴍᴀʟᴠɪɴ ᴋɪɴɢ')}
-│↠⏰ ᴛɪᴍᴇ: ${time}
-│↠📅 ᴅᴀᴛᴇ: ${date}
-│↠🌍 ᴍᴏᴅᴇ: ${toTinyCaps(currentSettings.commandMode || settings.commandMode || 'ᴘᴜʙʟɪᴄ')}
-│↠✒️ ᴘʀᴇғɪx: [ ${currentPrefix} ]
-│↠🧩 ᴄᴍᴅs: ${totalCommands}
-│↠🚀 ᴠᴇʀsɪᴏɴ: ${currentSettings.version || settings.version || 'ʟᴀᴛᴇsᴛ'}
-│↠👥 ғᴏʀᴋs: ${forks}
-│↠✍️ ᴀᴜᴛʜᴏʀ: ${toTinyCaps(currentSettings.author || settings.author || 'ᴍʀ ᴍᴀʟᴠɪɴ')}
-╰──────────➣
+╭─ \`🤖 ${toTinyCaps(currentSettings.botName || settings.botName || 'ademola-xd')}\` ─╮
+│ 👤 ᴏᴡɴᴇʀ : ${toTinyCaps(currentSettings.botOwner || settings.botOwner || 'ᴀᴅᴇᴍᴏʟᴀ')}
+│ ⏰ ᴛɪᴍᴇ: ${time}  📅 ${date}
+│ 🌍 ᴍᴏᴅᴇ: ${toTinyCaps(currentSettings.commandMode || settings.commandMode || 'ᴘᴜʙʟɪᴄ')}
+│ ✒️ ᴘʀᴇғɪx: [ ${currentPrefix} ]  🧩 ᴄᴍᴅs: ${totalCommands}
+│ 🚀 ᴠᴇʀsɪᴏɴ: ${currentSettings.version || settings.version || 'ʟᴀᴛᴇsᴛ'}
+│ 👥 ғᴏʀᴋs: ${forks}
+╰──────────────────╯
 
-╭─「 \`📁 ᴄᴀᴛᴇɢᴏʀʏ ʟɪsᴛ\` 」
-│ ➊  🤖 ᴀɪ & ᴄʜᴀᴛ ᴛᴏᴏʟs
-│ ➋  📥 ᴅᴏᴡɴʟᴏᴀᴅ ᴍᴀɴᴀɢᴇʀ
-│ ➌  🎮 ғᴜɴ & ɢᴀᴍᴇs
-│ ➍  💬 ɢʀᴏᴜᴘ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ
-│ ➎  🛠️ ᴜᴛɪʟɪᴛɪᴇs & ᴛᴏᴏʟs
-│ ➏  🎨 ᴍᴇᴅɪᴀ & sᴛɪᴄᴋᴇʀs
-│ ➐  ⚙️ ʙᴏᴛ sᴇᴛᴛɪɴɢs
-│ ➑  👑 ᴏᴡɴᴇʀ ᴄᴍᴅs
-│ ➒  📝 ᴛᴇxᴛ & ᴇғғᴇᴄᴛs
-│ ➓  🖼️ ɪᴍᴀɢᴇ & ғɪʟᴛᴇʀs
-╰──────➣➣
+╭─ \`📁 ᴄᴀᴛᴇɢᴏʀɪᴇs\` ─╮
+│ ➊  🤖 AI & Chat
+│ ➋  📥 Download Manager
+│ ➌  🎮 Fun & Games
+│ ➍  💬 Group Management
+│ ➎  🛠️ Utilities & Tools
+│ ➏  🎨 Media & Stickers
+│ ➐  ⚙️ Bot Settings
+│ ➑  📝 Text & Effects
+│ ➒  🖼️ Image & Filters
+╰──────────────╯
 
-💡 ʀᴇᴘʟʏ ᴡɪᴛʜ ɴᴜᴍʙᴇʀ (1-10) ᴛᴏ sᴇᴇ ᴄᴍᴅs
-
-> ${currentSettings.description || settings.description || 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ'}
+💡 Send a number (1-9) to see commands with descriptions
 `;
 
-        // Remove any existing listener for this user
         if (activeListeners.has(sender)) {
             const oldListener = activeListeners.get(sender);
             ademola.ev.off('messages.upsert', oldListener.listener);
@@ -569,40 +124,35 @@ ademola({
             activeListeners.delete(sender);
         }
 
-        // Send main menu with image - Use current settings first
         const imageUrl = currentSettings.imageUrl || currentSettings.MENU_IMAGE_URL || settings.imageUrl || settings.MENU_IMAGE_URL;
         let sentMsg;
-        
+
         if (imageUrl) {
             try {
                 sentMsg = await ademola.sendMessage(from, {
                     image: { url: imageUrl },
-                    caption: mainMenu,
-                    ...channelInfo
+                    caption: mainMenu
                 }, { quoted: fakevCard });
             } catch (imageError) {
                 console.error('ᴇʀʀᴏʀ ʟᴏᴀᴅɪɴɢ ɪᴍᴀɢᴇ:', imageError);
-                sentMsg = await ademola.sendMessage(from, { 
-                    text: mainMenu,
-                    ...channelInfo 
+                sentMsg = await ademola.sendMessage(from, {
+                    text: mainMenu
                 }, { quoted: fakevCard });
             }
         } else {
-            sentMsg = await ademola.sendMessage(from, { 
-                text: mainMenu,
-                ...channelInfo 
+            sentMsg = await ademola.sendMessage(from, {
+                text: mainMenu
             }, { quoted: fakevCard });
         }
 
-        // Set up reply listener with 5-minute timeout
         const timeout = setTimeout(async () => {
             if (activeListeners.has(sender)) {
                 const listenerInfo = activeListeners.get(sender);
                 ademola.ev.off('messages.upsert', listenerInfo.listener);
                 activeListeners.delete(sender);
-                await reply("⏰ *Menu session expired!*\n\nUse .menu again to restart menu category.");
+                await reply("⏰ *Menu session expired!*\n\nUse .menu again to restart.");
             }
-        }, 300000); // 5 minutes
+        }, 300000);
 
         const messageListener = async (messageUpdate) => {
             try {
@@ -611,23 +161,17 @@ ademola({
 
                 const message = mekInfo.message;
                 const messageType = message.conversation || message.extendedTextMessage?.text;
-                
-                // Check if this is a direct message (not necessarily a reply)
-                // This allows multiple replies without needing to quote
+
                 if (messageType && /^[0-9]+$/.test(messageType.trim())) {
                     const userInput = messageType.trim();
                     const categoryMenus = getCategoryMenus(currentPrefix);
-                    
-                    // Handle category numbers 1-10
-                    if (/^[1-9]|10$/.test(userInput)) {
+
+                    if (/^[1-9]$/.test(userInput)) {
                         if (categoryMenus[userInput]) {
-                            // Send the category menu
                             await ademola.sendMessage(from, {
-                                text: categoryMenus[userInput],
-                                ...channelInfo
+                                text: categoryMenus[userInput]
                             }, { quoted: fakevCard });
 
-                            // Send success reaction
                             try {
                                 if (mekInfo?.key?.id) {
                                     await ademola.sendMessage(from, { react: { text: "✅", key: mekInfo.key } });
@@ -635,38 +179,30 @@ ademola({
                             } catch (reactError) {
                                 console.error('Success reaction failed:', reactError);
                             }
-                            
-                            // DON'T remove the listener - allow more replies!
                             return;
                         }
                     }
-                    
-                    // Handle "0" to show main menu again
+
                     if (userInput === '0') {
                         await ademola.sendMessage(from, {
-                            text: "🔄 Returning to main menu...",
-                            ...channelInfo
+                            text: "🔄 Returning to main menu..."
                         }, { quoted: fakevCard });
 
-                        // Re-send the main menu after short delay
                         setTimeout(async () => {
                             if (imageUrl) {
                                 try {
                                     await ademola.sendMessage(from, {
                                         image: { url: imageUrl },
-                                        caption: mainMenu,
-                                        ...channelInfo
+                                        caption: mainMenu
                                     }, { quoted: fakevCard });
                                 } catch (imageError) {
-                                    await ademola.sendMessage(from, { 
-                                        text: mainMenu,
-                                        ...channelInfo 
+                                    await ademola.sendMessage(from, {
+                                        text: mainMenu
                                     }, { quoted: fakevCard });
                                 }
                             } else {
-                                await ademola.sendMessage(from, { 
-                                    text: mainMenu,
-                                    ...channelInfo 
+                                await ademola.sendMessage(from, {
+                                    text: mainMenu
                                 }, { quoted: fakevCard });
                             }
                         }, 1000);
@@ -679,29 +215,13 @@ ademola({
             }
         };
 
-        // Register the listener
         ademola.ev.on('messages.upsert', messageListener);
-        
-        // Store listener info for cleanup
+
         activeListeners.set(sender, {
             listener: messageListener,
             timeout: timeout,
             startTime: Date.now()
         });
-
-        // Send audio if available - Use current settings first
-        const audioUrl = currentSettings.MENU_AUDIO_URL || settings.MENU_AUDIO_URL;
-        if (audioUrl) {
-            try {
-                await ademola.sendMessage(from, {
-                    audio: { url: audioUrl },
-                    mimetype: 'audio/mpeg',
-                    ptt: false
-                });
-            } catch (audioError) {
-                console.error('ᴇʀʀᴏʀ sᴇɴᴅɪɴɢ ᴀᴜᴅɪᴏ:', audioError);
-            }
-        }
 
     } catch (error) {
         console.error('ᴇʀʀᴏʀ ɪɴ ᴍᴇɴᴜ ᴄᴏᴍᴍᴀɴᴅ:', error);

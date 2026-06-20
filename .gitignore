@@ -5,6 +5,9 @@ package-lock.json
 # Runtime data
 tmp/
 temp/
+data/messageCount.json
+data/settings.json
+baileys_store.json
 
 # Session files
 session/

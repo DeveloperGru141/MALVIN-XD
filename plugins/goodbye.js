@@ -143,7 +143,7 @@ async function handleLeaveEvent(sock, groupId, participants) {
 *@${displayName}* has left  *${groupName}*.
 We'll miss you buddy! 😢
                 
-> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ
+> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ
 `;
                 
                 await sock.sendMessage(groupId, {
@@ -157,7 +157,7 @@ We'll miss you buddy! 😢
                 console.error(`❌ Error sending goodbye for participant:`, error);
                 
                 // Fallback to simple goodbye message without mention
-                const simpleGoodbye = `👋 A member has left *${groupName}*. We'll miss them! 😢\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`;
+                const simpleGoodbye = `👋 A member has left *${groupName}*. We'll miss them! 😢\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
                 
                 await sock.sendMessage(groupId, {
                     text: simpleGoodbye,
