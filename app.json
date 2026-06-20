@@ -1,11 +1,11 @@
 {
-  "name": "malvin-xd",
+  "name": "ademola-xd",
   "version": "2.1.1",
-  "description": "MALVIN XD - Advanced WhatsApp Bot",
+  "description": "ADEMOLA-XD - Advanced WhatsApp Bot",
   "website": "cooming soon",
-  "logo": "https://i.ibb.co/zHhMyRT3/malvin-xd.jpg",
-  "keywords": ["malvin-xd", "whatsapp-bot"],
-  "repository": "https://github.com/XdKing2/MALVIN-XD",
+  "logo": "https://i.ibb.co/zHhMyRT3/ademola-xd.jpg",
+  "keywords": ["ademola-xd", "whatsapp-bot"],
+  "repository": "https://github.com/DeveloperGru141/MALVIN-XD",
   "success_url": "/",
   "stack": "container",
   "env": {
