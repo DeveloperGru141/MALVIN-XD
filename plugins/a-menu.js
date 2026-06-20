@@ -1,230 +1,114 @@
 const { ademola, commands, fakevCard } = require("../ademola");
-const os = require('os');
 const settings = require('../settings');
-const { channelInfo } = require('../lib/messageConfig');
 const axios = require('axios');
 const moment = require('moment-timezone');
 const { getPrefix } = require('../lib/prefix');
 const { loadSettings } = require('../lib/settingsManager');
 
 const toTinyCaps = (text) => {
-    const tinyCapsMap = {
-        a: 'ᴀ', b: 'ʙ', c: 'ᴄ', d: 'ᴅ', e: 'ᴇ', f: 'ғ', g: 'ɢ', h: 'ʜ', i: 'ɪ',
-        j: 'ᴊ', k: 'ᴋ', l: 'ʟ', m: 'ᴍ', n: 'ɴ', o: 'ᴏ', p: 'ᴘ', q: 'ǫ', r: 'ʀ',
-        s: 's', t: 'ᴛ', u: 'ᴜ', v: 'ᴠ', w: 'ᴡ', x: 'x', y: 'ʏ', z: 'ᴢ'
-    };
-    return text.toLowerCase().split('').map(c => tinyCapsMap[c] || c).join('');
+    const m = { a:'ᴀ',b:'ʙ',c:'ᴄ',d:'ᴅ',e:'ᴇ',f:'ғ',g:'ɢ',h:'ʜ',i:'ɪ',j:'ᴊ',k:'ᴋ',l:'ʟ',m:'ᴍ',n:'ɴ',o:'ᴏ',p:'ᴘ',q:'ǫ',r:'ʀ',s:'s',t:'ᴛ',u:'ᴜ',v:'ᴠ',w:'ᴡ',x:'x',y:'ʏ',z:'ᴢ' };
+    return text.toLowerCase().split('').map(c => m[c] || c).join('');
 };
 
 const fetchGitHubForks = async () => {
     try {
-        const repo = 'XdKing2/MALVIN-XD';
-        const response = await axios.get(`https://api.github.com/repos/${repo}`);
-        return response.data.forks_count || 'ɴ/ᴀ';
-    } catch (e) {
-        console.error('ᴇʀʀᴏʀ ғᴇᴛᴄʜɪɴɢ ɢɪᴛʜᴜʙ ғᴏʀᴋs:', e);
-        return 'ɴ/ᴀ';
-    }
+        const res = await axios.get('https://api.github.com/repos/XdKing2/MALVIN-XD');
+        return res.data.forks_count || 'N/A';
+    } catch { return 'N/A'; }
 };
 
 function getCurrentPrefix() {
-    try {
-        const prefix = getPrefix();
-        return prefix || '.';
-    } catch (error) {
-        return '.';
-    }
+    try { return getPrefix() || '.'; }
+    catch { return '.'; }
 }
 
 const categoryMap = {
-    '1': { name: 'AI & CHAT TOOLS', cats: ['AI'] },
-    '2': { name: 'DOWNLOAD MANAGER', cats: ['DOWNLOAD', 'DOWNLOADER'] },
-    '3': { name: 'FUN & GAMES', cats: ['FUN', 'GAME'] },
-    '4': { name: 'GROUP MANAGEMENT', cats: ['GROUP'] },
-    '5': { name: 'UTILITIES & TOOLS', cats: ['GENERAL', 'INFO', 'TOOLS', 'SEARCH', 'STALK', 'UTILITY', 'WHATSAPP', 'MAIN'] },
-    '6': { name: 'MEDIA & STICKERS', cats: ['MEDIA', 'STICKER', 'MAKER', 'AUDIO'] },
-    '7': { name: 'BOT SETTINGS', cats: ['SETTINGS', 'SECURITY', 'MODERATION'] },
-    '8': { name: 'TEXT & EFFECTS', cats: ['TEXTMAKER'] },
-    '9': { name: 'IMAGE & FILTERS', cats: ['IMAGE'] },
+    ai:       { name: 'AI & CHAT TOOLS', cats: ['AI'] },
+    download: { name: 'DOWNLOAD MANAGER', cats: ['DOWNLOAD', 'DOWNLOADER'] },
+    fun:      { name: 'FUN & GAMES', cats: ['FUN', 'GAME'] },
+    group:    { name: 'GROUP MANAGEMENT', cats: ['GROUP'] },
+    tools:    { name: 'UTILITIES & TOOLS', cats: ['GENERAL', 'INFO', 'TOOLS', 'SEARCH', 'STALK', 'UTILITY', 'WHATSAPP', 'MAIN'] },
+    media:    { name: 'MEDIA & STICKERS', cats: ['MEDIA', 'STICKER', 'MAKER', 'AUDIO'] },
+    settings: { name: 'BOT SETTINGS', cats: ['SETTINGS', 'SECURITY', 'MODERATION'] },
+    text:     { name: 'TEXT & EFFECTS', cats: ['TEXTMAKER'] },
+    image:    { name: 'IMAGE & FILTERS', cats: ['IMAGE'] },
 };
 
-function getCategoryMenus(prefix) {
-    const menus = {};
-    for (const [key, { name, cats }] of Object.entries(categoryMap)) {
-        const cmds = commands.filter(c =>
-            cats.includes((c.category || '').toUpperCase()) &&
-            c.pattern &&
-            !c.dontAddCommandList &&
-            c.pattern !== '([1-9])'
-        );
-        let text = `╭─── \`📁 ${name}\` ───╮\n\n`;
-        cmds.forEach(cmd => {
-            const desc = cmd.desc ? ` — ${cmd.desc}` : '';
-            text += `▸ *${prefix}${cmd.pattern}*${desc}\n`;
-        });
-        text += `\n╰─ 💡 Send "0" for main menu ─╯`;
-        menus[key] = text;
-    }
-    return menus;
-}
+const categoryAliases = {
+    ai: 'ai', chat: 'ai',
+    download: 'download', dl: 'download',
+    fun: 'fun', game: 'fun', games: 'fun',
+    group: 'group', grp: 'group', gc: 'group',
+    tools: 'tools', utility: 'tools', util: 'tools', tool: 'tools', utilities: 'tools',
+    media: 'media', sticker: 'media', stickers: 'media',
+    settings: 'settings', setting: 'settings', config: 'settings', bot: 'settings',
+    text: 'text', textmaker: 'text', effect: 'text', effects: 'text',
+    image: 'image', img: 'image', filter: 'image', filters: 'image',
+};
 
-const activeListeners = new Map();
+function buildCategoryMenu(prefix, key) {
+    const { name, cats } = categoryMap[key];
+    const cmds = commands.filter(c =>
+        cats.includes((c.category || '').toUpperCase()) &&
+        c.pattern && !c.dontAddCommandList && c.pattern !== '([1-9])'
+    );
+    let text = `╭─── 📁 ${name} ───╮\n\n`;
+    cmds.forEach(cmd => {
+        const desc = cmd.desc ? ` — ${cmd.desc}` : '';
+        text += `▸ ${prefix}${cmd.pattern}${desc}\n`;
+    });
+    return text;
+}
 
 ademola({
     pattern: "menu",
-    alias: ["m", "allmenu"],
-    desc: "Show all bot commands in organized categories",
+    alias: ["m", "allmenu", "help", "h"],
+    desc: "Show bot commands. Use .menu <category> for details.",
     category: "general",
     react: "📚",
-    use: ".menu",
+    use: ".menu [ai|download|fun|group|tools|media|settings|text|image]",
     filename: __filename,
-}, async (ademola, mek, m, { from, reply, prefix, sender }) => {
+}, async (ademola, mek, m, { from, q, reply, prefix, sender }) => {
     try {
         const currentSettings = loadSettings();
-
-        const totalCommands = commands.filter(cmd =>
-            cmd.category && cmd.pattern && !cmd.dontAdd
-        ).length;
-
+        const totalCommands = commands.filter(cmd => cmd.category && cmd.pattern && !cmd.dontAdd).length;
         const timezone = currentSettings.timezone || settings.timezone || 'Africa/Harare';
-        const time = moment().tz(timezone).format('HH:mm:ss');
-        const date = moment().tz(timezone).format('DD/MM/YYYY');
-        const forks = await fetchGitHubForks();
+        const t = moment().tz(timezone);
         const currentPrefix = getCurrentPrefix();
 
-        const mainMenu = `
-╭─ \`🤖 ${toTinyCaps(currentSettings.botName || settings.botName || 'ademola-xd')}\` ─╮
-│ 👤 ᴏᴡɴᴇʀ : ${toTinyCaps(currentSettings.botOwner || settings.botOwner || 'ᴀᴅᴇᴍᴏʟᴀ')}
-│ ⏰ ᴛɪᴍᴇ: ${time}  📅 ${date}
-│ 🌍 ᴍᴏᴅᴇ: ${toTinyCaps(currentSettings.commandMode || settings.commandMode || 'ᴘᴜʙʟɪᴄ')}
-│ ✒️ ᴘʀᴇғɪx: [ ${currentPrefix} ]  🧩 ᴄᴍᴅs: ${totalCommands}
-│ 🚀 ᴠᴇʀsɪᴏɴ: ${currentSettings.version || settings.version || 'ʟᴀᴛᴇsᴛ'}
-│ 👥 ғᴏʀᴋs: ${forks}
+        if (q) {
+            const input = q.trim().toLowerCase();
+            const mapped = categoryAliases[input];
+            if (mapped && categoryMap[mapped]) {
+                return reply(buildCategoryMenu(currentPrefix, mapped));
+            }
+            const list = Object.keys(categoryMap).join(', ');
+            return reply(`❌ Unknown category.\n\nAvailable: ${list}\n\nExample: ${currentPrefix}menu ai`);
+        }
+
+        const forks = await fetchGitHubForks();
+        const timeStr = t.format('HH:mm:ss');
+        const dateStr = t.format('DD/MM/YYYY');
+
+        const main = `╭─ 🤖 ${toTinyCaps(currentSettings.botName || settings.botName || 'ademola-xd')} ─╮
+│ 👤 Owner: ${toTinyCaps(currentSettings.botOwner || settings.botOwner || 'ademola')}
+│ ⏰ ${timeStr}  📅 ${dateStr}
+│ 🌍 Mode: ${toTinyCaps(currentSettings.commandMode || 'public')}
+│ ✒️ Prefix: [ ${currentPrefix} ]  🧩 Commands: ${totalCommands}
+│ 🚀 Version: ${currentSettings.version || 'latest'}
+│ 👥 Forks: ${forks}
 ╰──────────────────╯
 
-╭─ \`📁 ᴄᴀᴛᴇɢᴏʀɪᴇs\` ─╮
-│ ➊  🤖 AI & Chat
-│ ➋  📥 Download Manager
-│ ➌  🎮 Fun & Games
-│ ➍  💬 Group Management
-│ ➎  🛠️ Utilities & Tools
-│ ➏  🎨 Media & Stickers
-│ ➐  ⚙️ Bot Settings
-│ ➑  📝 Text & Effects
-│ ➒  🖼️ Image & Filters
-╰──────────────╯
+📁 CATEGORIES
 
-💡 Send a number (1-9) to see commands with descriptions
-`;
+${Object.entries(categoryMap).map(([k, v]) => `  ${currentPrefix}menu ${k} — ${v.name}`).join('\n')}
 
-        if (activeListeners.has(sender)) {
-            const oldListener = activeListeners.get(sender);
-            ademola.ev.off('messages.upsert', oldListener.listener);
-            clearTimeout(oldListener.timeout);
-            activeListeners.delete(sender);
-        }
+💡 Example: ${currentPrefix}menu ai`;
 
-        const imageUrl = currentSettings.imageUrl || currentSettings.MENU_IMAGE_URL || settings.imageUrl || settings.MENU_IMAGE_URL;
-        let sentMsg;
-
-        if (imageUrl) {
-            try {
-                sentMsg = await ademola.sendMessage(from, {
-                    image: { url: imageUrl },
-                    caption: mainMenu
-                }, { quoted: fakevCard });
-            } catch (imageError) {
-                console.error('ᴇʀʀᴏʀ ʟᴏᴀᴅɪɴɢ ɪᴍᴀɢᴇ:', imageError);
-                sentMsg = await ademola.sendMessage(from, {
-                    text: mainMenu
-                }, { quoted: fakevCard });
-            }
-        } else {
-            sentMsg = await ademola.sendMessage(from, {
-                text: mainMenu
-            }, { quoted: fakevCard });
-        }
-
-        const timeout = setTimeout(async () => {
-            if (activeListeners.has(sender)) {
-                const listenerInfo = activeListeners.get(sender);
-                ademola.ev.off('messages.upsert', listenerInfo.listener);
-                activeListeners.delete(sender);
-                await reply("⏰ *Menu session expired!*\n\nUse .menu again to restart.");
-            }
-        }, 300000);
-
-        const messageListener = async (messageUpdate) => {
-            try {
-                const mekInfo = messageUpdate?.messages[0];
-                if (!mekInfo?.message || mekInfo.key.remoteJid !== from) return;
-
-                const message = mekInfo.message;
-                const messageType = message.conversation || message.extendedTextMessage?.text;
-
-                if (messageType && /^[0-9]+$/.test(messageType.trim())) {
-                    const userInput = messageType.trim();
-                    const categoryMenus = getCategoryMenus(currentPrefix);
-
-                    if (/^[1-9]$/.test(userInput)) {
-                        if (categoryMenus[userInput]) {
-                            await ademola.sendMessage(from, {
-                                text: categoryMenus[userInput]
-                            }, { quoted: fakevCard });
-
-                            try {
-                                if (mekInfo?.key?.id) {
-                                    await ademola.sendMessage(from, { react: { text: "✅", key: mekInfo.key } });
-                                }
-                            } catch (reactError) {
-                                console.error('Success reaction failed:', reactError);
-                            }
-                            return;
-                        }
-                    }
-
-                    if (userInput === '0') {
-                        await ademola.sendMessage(from, {
-                            text: "🔄 Returning to main menu..."
-                        }, { quoted: fakevCard });
-
-                        setTimeout(async () => {
-                            if (imageUrl) {
-                                try {
-                                    await ademola.sendMessage(from, {
-                                        image: { url: imageUrl },
-                                        caption: mainMenu
-                                    }, { quoted: fakevCard });
-                                } catch (imageError) {
-                                    await ademola.sendMessage(from, {
-                                        text: mainMenu
-                                    }, { quoted: fakevCard });
-                                }
-                            } else {
-                                await ademola.sendMessage(from, {
-                                    text: mainMenu
-                                }, { quoted: fakevCard });
-                            }
-                        }, 1000);
-                        return;
-                    }
-                }
-
-            } catch (error) {
-                console.error('Menu reply error:', error);
-            }
-        };
-
-        ademola.ev.on('messages.upsert', messageListener);
-
-        activeListeners.set(sender, {
-            listener: messageListener,
-            timeout: timeout,
-            startTime: Date.now()
-        });
+        await reply(main);
 
     } catch (error) {
-        console.error('ᴇʀʀᴏʀ ɪɴ ᴍᴇɴᴜ ᴄᴏᴍᴍᴀɴᴅ:', error);
-        await reply("❌ Failed to load menu. Please try again.");
+        console.error('Menu error:', error);
+        await reply('❌ Failed to load menu.');
     }
 });
