@@ -78,16 +78,22 @@ ademola({
       currentSettings
     );
 
-    // Use image URL from settings or default
-    const imageUrl = currentSettings.imageUrl || 'https://i.ibb.co/VWt5CXzX/malvin-xd.jpg';
+    const imageUrl = currentSettings.imageUrl;
     
-    // Send image with status info
-    await ademola.sendMessage(from, {
-      image: { url: imageUrl },
-      caption: statusInfo,
-      mentions: [sender],
-      ...channelInfo
-    }, { quoted: fakevCard });
+    if (imageUrl) {
+      await ademola.sendMessage(from, {
+        image: { url: imageUrl },
+        caption: statusInfo,
+        mentions: [sender],
+        ...channelInfo
+      }, { quoted: fakevCard });
+    } else {
+      await ademola.sendMessage(from, {
+        text: statusInfo,
+        mentions: [sender],
+        ...channelInfo
+      }, { quoted: fakevCard });
+    }
 
     // Send audio if available in settings
     const audioUrl = currentSettings.ALIVE_AUDIO_URL || currentSettings.MENU_AUDIO_URL;

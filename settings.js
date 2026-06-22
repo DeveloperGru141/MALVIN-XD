@@ -18,7 +18,7 @@ const settings = {
   storeWriteInterval: 10000,
   description: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ xᴅ",
   updateZipUrl: "https://github.com/XdKing2/MALVIN-XD/archive/refs/heads/main.zip",
-  imageUrl: "https://i.ibb.co/zHhMyRT3/malvin-xd.jpg",
+  imageUrl: "",
   MENU_AUDIO_URL: "https://files.catbox.moe/jrhodx.mp3",
   ALIVE_AUDIO_URL: "https://files.catbox.moe/dy9z54.mp3",
 };
