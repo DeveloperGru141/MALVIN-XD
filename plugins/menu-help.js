@@ -81,20 +81,19 @@ ademola({
         menu += `🔍 *Total Commands*: ${totalCommands}\n\n`;
         menu += `> ${settings.DESCRIPTION || 'Powered by Ademola Tech'}`;
 
-        // Send menu
-        await ademola.sendMessage(
-            from,
-            {
-                image: { url: settings.MENU_IMAGE_URL || 'https://i.ibb.co/VWt5CXzX/malvin-xd.jpg' },
+        const menuImageUrl = settings.MENU_IMAGE_URL;
+        if (menuImageUrl) {
+            await ademola.sendMessage(from, {
+                image: { url: menuImageUrl },
                 caption: menu,
-                contextInfo: {
-                    mentionedJid: [sender],
-                    forwardingScore: 999,
-                    isForwarded: true
-                }
-            },
-            { quoted: fakevCard }
-        );
+                contextInfo: { mentionedJid: [sender], forwardingScore: 999, isForwarded: true }
+            }, { quoted: fakevCard });
+        } else {
+            await ademola.sendMessage(from, {
+                text: menu,
+                contextInfo: { mentionedJid: [sender], forwardingScore: 999, isForwarded: true }
+            }, { quoted: fakevCard });
+        }
 
     } catch (error) {
         console.error('Menu Error:', error);

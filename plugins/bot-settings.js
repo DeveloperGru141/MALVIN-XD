@@ -1,7 +1,7 @@
 const { ademola, fakevCard } = require("../ademola");
 const { channelInfo } = require('../lib/messageConfig');
 const { loadSettings, saveSettings, updateSetting } = require('../lib/settingsManager');
-const SETTINGS_IMG = "https://i.ibb.co/VWt5CXzX/malvin-xd.jpg";
+const SETTINGS_IMG = "";
 
 // Tiny caps mapping
 const tinyCapsMap = {

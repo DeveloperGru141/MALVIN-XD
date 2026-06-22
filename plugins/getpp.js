@@ -39,7 +39,7 @@ ademola({
             try {
                 profilePic = await ademola.profilePictureUrl(userToAnalyze, 'image');
             } catch {
-                profilePic = 'https://i.ibb.co/VWt5CXzX/malvin-xd.jpg'; // Default image
+                profilePic = ''; // Default image
             }
 
             // Send the profile picture to the chat

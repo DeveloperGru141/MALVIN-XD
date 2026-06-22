@@ -35,7 +35,7 @@ async function downloadMedia(mediaNode, mediaType) {
 }
 
 // Cover image handling
-const COVER_URL = 'https://i.ibb.co/VWt5CXzX/malvin-xd.jpg';
+const COVER_URL = '';
 let coverImagePath = null;
 
 async function ensureCoverImage() {

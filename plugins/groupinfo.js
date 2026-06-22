@@ -23,7 +23,7 @@ ademola({
             pp = await ademola.profilePictureUrl(from, 'image');
         } catch {
             // Use a reliable default image
-            pp = 'https://i.ibb.co/VWt5CXzX/malvin-xd.jpg';
+            pp = '';
         }
 
         // Get admins from participants
