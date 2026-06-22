@@ -6,7 +6,7 @@
 
 const { ademola, fakevCard } = require('../ademola');
 const { channelInfo } = require('../lib/messageConfig');
-const { igdl } = require("ruhend-scraper");
+const axios = require('axios');
 
 // Store processed message IDs to prevent duplicates
 const processedMessages = new Set();
@@ -104,24 +104,28 @@ ademola({
         // Start ultra-fast loading animation
         const loadingAnimation = await sendIgLoading(ademola, from, "Fetching Instagram data");
 
-        const downloadData = await igdl(q);
-        
-        if (!downloadData || !downloadData.data || downloadData.data.length === 0) {
+        const nexoracleKey = process.env.NEXORACLE_API_KEY || 'e276311658d835109c';
+        const igRes = await axios.get(`https://api.nexoracle.com/downloader/ig?apikey=${nexoracleKey}&url=${encodeURIComponent(q)}`, { timeout: 20000 });
+        const downloadData = igRes.data;
+
+        let mediaItems = [];
+        if (downloadData?.status === 200 && downloadData?.result?.data) {
+            mediaItems = downloadData.result.data;
+        } else if (downloadData?.data?.length) {
+            mediaItems = downloadData.data;
+        } else if (downloadData?.result?.length) {
+            mediaItems = downloadData.result;
+        } else {
             loadingAnimation.stop();
             return await reply(`❌ *No media found!*\n\nPossible reasons:\n• Post is private\n• Link is invalid\n• Account is private\n• Post was deleted\n\nPlease check the URL and try again.`);
         }
 
-        const mediaData = downloadData.data;
-        
-        // Simple deduplication
-        const uniqueMedia = extractUniqueMedia(mediaData);
-        
-        // Limit to maximum 10 unique media items
+        const uniqueMedia = extractUniqueMedia(mediaItems.map(m => typeof m === 'string' ? { url: m } : m));
         const mediaToDownload = uniqueMedia.slice(0, 10);
-        
+
         if (mediaToDownload.length === 0) {
             loadingAnimation.stop();
-            return await reply(`❌ *No valid media found!*\n\nThe scraper couldn't extract any media from this post.`);
+            return await reply(`❌ *No valid media found!*\n\nThe service couldn't extract any media from this post.`);
         }
 
         loadingAnimation.stop();

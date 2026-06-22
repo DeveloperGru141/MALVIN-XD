@@ -1,4 +1,4 @@
-// Ademola King 🤴 
+// Ademola🤴 
 require('./settings')
 const { Boom } = require('@hapi/boom')
 const fs = require('fs')
@@ -8,7 +8,7 @@ const path = require('path')
 const axios = require('axios')
 const PhoneNumber = require('awesome-phonenumber')
 const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = require('./lib/exif')
-const { smsg, isUrl, generateMessageTag, getBuffer, getSizeMedia, fetch, await, sleep, reSize } = require('./lib/myfunc')
+const { smsg, isUrl, generateMessageTag, getBuffer, getSizeMedia, sleep, reSize } = require('./lib/myfunc')
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -120,6 +120,16 @@ if (!global.settings) {
     global.settings = {};
 }
 console.log('🔧 Global settings initialized');
+
+// ========== ACTIVITY LOG (accessible to plugins) ==========
+const activityLog = [];
+const MAX_ACTIVITY = 50;
+function pushActivity(type, detail) {
+    activityLog.unshift({ type, detail, time: new Date().toLocaleString() });
+    if (activityLog.length > MAX_ACTIVITY) activityLog.length = MAX_ACTIVITY;
+}
+global.getActivityLog = () => activityLog;
+global.pushActivity = pushActivity;
 
 // ========== LOAD PERSISTENT SETTINGS ==========
 const persistentSettings = loadSettings();
@@ -297,9 +307,10 @@ const newsletterJids = [
 ];
 const emojis = ["🎉", "🪀", "🎀","💫"];
 
-let phoneNumber = "2348108574293"
-const pairingCode = !!phoneNumber || process.argv.includes("--pairing-code")
 const useMobile = process.argv.includes("--mobile")
+const useQr = process.argv.includes("--qr") || process.argv.includes("--use-qr")
+const requestPairing = !useQr
+const phoneNumber = process.env.OWNER_NUMBER || "2348108574293"
 
 // Memory optimization
 setInterval(() => {
@@ -323,9 +334,8 @@ const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin
 const question = (text) => {
     if (rl) {
         return new Promise((resolve) => rl.question(text, resolve))
-    } else {
-        return Promise.resolve(settings.ownerNumber || phoneNumber)
     }
+    return Promise.resolve(phoneNumber)
 }
 
 // Session data function
@@ -475,9 +485,8 @@ async function followNewsletters(ademolaBot) {
 async function startAdemolaXD() {
     // Add session data handling
     const sessionLoaded = await downloadSessionData();
-    if (!sessionLoaded && !pairingCode) {
-        console.log(chalk.red('Cannot proceed without session data or pairing code.'));
-        process.exit(1);
+    if (!sessionLoaded) {
+        console.log(chalk.yellow(!requestPairing ? '📱 QR code will be displayed for authentication.' : '🔑 Pairing code will be requested...'));
     }
 
     let { version, isLatest } = await fetchLatestBaileysVersion()
@@ -487,7 +496,7 @@ async function startAdemolaXD() {
     const ademolaBot = makeWASocket({
         version,
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: !pairingCode,
+        printQRInTerminal: !requestPairing,
         browser: ["Ubuntu", "Chrome", "20.0.04"],
         auth: {
             creds: state.creds,
@@ -517,19 +526,19 @@ async function startAdemolaXD() {
     // Group participants update handler for welcome/goodbye messages
     ademolaBot.ev.on('group-participants.update', async (update) => {
         try {
-            console.log('👥 Group participants update:', JSON.stringify(update));
-            
-            const { id, participants, action } = update;
+            const { id, participants, action: eventAction } = update;
+            const actionLabel = eventAction === 'add' ? '➕ JOIN' : '➖ LEAVE';
+            const pList = participants.map(p => (p.phoneNumber || p.id || '').split('@')[0]).join(', ');
+            console.log(`👥 ${actionLabel} ${id.split('@')[0]}: ${pList}`);
+            pushActivity(eventAction === 'add' ? 'join' : 'leave', `${pList} in ${id.split('@')[0]}`);
             
             // Handle join events - welcome new members
-            if (action === 'add') {
-              //  console.log(`🎉 New member(s) added to ${id}:`, participants);
+            if (eventAction === 'add') {
                 await handleJoinEvent(ademolaBot, id, participants);
             }
             
             // Handle leave events - goodbye messages
-            if (action === 'remove') {
-               // console.log(`👋 Member(s) left from ${id}:`, participants);
+            if (eventAction === 'remove') {
                 await handleLeaveEvent(ademolaBot, id, participants);
             }
             
@@ -661,12 +670,19 @@ async function startAdemolaXD() {
         const from = mek.key.remoteJid;
         const senderId = mek.key.participant || from;
         const isGroup = from.endsWith('@g.us');
+        const senderShort = senderId.split('@')[0];
+        const fromName = isGroup ? from.split('@')[0] : senderShort;
         
         // Get message content
         const body = mek.message?.conversation || 
                     mek.message?.extendedTextMessage?.text || 
                     mek.message?.imageMessage?.caption ||
                     mek.message?.videoMessage?.caption || '';
+        
+        if (body) {
+            console.log(`💬 ${isGroup ? '[GRP]' : '[DM]'} ${senderShort}${isGroup ? ' in ' + from.split('@')[0] : ''}: ${body.slice(0, 100)}`);
+            pushActivity(isGroup ? 'group_msg' : 'dm_msg', `${senderShort}: ${body.slice(0, 60)}`);
+        }
         
         // Get current prefix dynamically
         const currentPrefix = getPrefix();
@@ -722,6 +738,8 @@ async function startAdemolaXD() {
                     const { getConfig } = require('./plugins/autoreply');
                     const config = getConfig();
                     if (config && config.enabled) {
+                        console.log(`🤖 Auto-reply to ${senderShort}: "${config.message.slice(0, 80)}"`);
+                        pushActivity('autoreply', `to ${senderShort}`);
                         await ademola.sendMessage(from, { text: config.message });
                     }
                 } catch (e) {
@@ -756,29 +774,46 @@ async function startAdemolaXD() {
 
         if (command) {
             try {
+                console.log(`⚡ CMD: .${cmd} by ${senderShort}${isGroup ? ' in ' + from.split('@')[0] : ''}${q ? ' | args: ' + q.slice(0, 80) : ''}`);
+                pushActivity('command', `.${cmd} by ${senderShort}`);
+
                 // Increment message count for commands
                 if (!mek.key.fromMe) incrementMessageCount(from, senderId);
 
-                // Execute the command with full context
-                await command.function(ademola, mek, m, {
-                    from,
-                    args: args.slice(1),
-                    q,
-                    text: q,
-                    isGroup,
-                    sender: senderId,
-                    senderNumber: senderId.split('@')[0],
-                    botNumber: ademola.user.id.split(':')[0] + '@s.whatsapp.net',
-                    pushname: mek.pushName || 'User',
-                    isMe: mek.key.fromMe,
-                    isOwner: await isOwnerOrSudo(senderId),
-                    reply: (text, options = {}) => 
-                        ademola.sendMessage(from, { text, ...options }, { quoted: mek }),
-                    isAdmin: async () => {
-                        if (!isGroup) return { isSenderAdmin: false, isBotAdmin: false };
-                        return await isAdmin(ademola, from, senderId);
-                    }
-                });
+                // Wrap reply to log sent messages
+                const originalReply = (text, options = {}) => ademola.sendMessage(from, { text, ...options }, { quoted: mek });
+                const loggedReply = async (text, options = {}) => {
+                    const preview = typeof text === 'string' ? text.slice(0, 80) : '[media]';
+                    console.log(`📤 Reply to ${senderShort}: ${preview}`);
+                    pushActivity('reply', `to ${senderShort}: ${preview}`);
+                    return originalReply(text, options);
+                };
+
+                // Execute the command with 3s timeout
+                const timeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('TIMEOUT')), 3000)
+                );
+                await Promise.race([
+                    command.function(ademola, mek, m, {
+                        from,
+                        args: args.slice(1),
+                        q,
+                        text: q,
+                        isGroup,
+                        sender: senderId,
+                        senderNumber: senderId.split('@')[0],
+                        botNumber: ademola.user.id.split(':')[0] + '@s.whatsapp.net',
+                        pushname: mek.pushName || 'User',
+                        isMe: mek.key.fromMe,
+                        isOwner: mek.key.fromMe || await isOwnerOrSudo(senderId),
+                        reply: loggedReply,
+                        isAdmin: async () => {
+                            if (!isGroup) return { isSenderAdmin: false, isBotAdmin: false };
+                            return await isAdmin(ademola, from, senderId);
+                        }
+                    }),
+                    timeout
+                ]);
                 
                 try {
                     const { addActivity } = require('./plugins/autostatus');
@@ -792,10 +827,13 @@ async function startAdemolaXD() {
                 await addCommandReaction(ademola, mek);
                 
             } catch (error) {
-              //  console.error(chalk.red(`❌ Command error (${cmd}):`), error);
-                await ademola.sendMessage(from, { 
-                    text: `❌ Error executing command: ${error.message}` 
-                }, { quoted: mek });
+                if (error.message === 'TIMEOUT') {
+                    console.log(`⏱️ CMD .${cmd} timed out after 3s`);
+                    pushActivity('timeout', `.${cmd}`);
+                    await ademola.sendMessage(from, { text: `⏱️ Command .${cmd} is taking too long. The bot is functional but the response may need more time.` }, { quoted: mek });
+                } else {
+                    await ademola.sendMessage(from, { text: `❌ Error: ${error.message}` }, { quoted: mek });
+                }
             }
         }
     }
@@ -831,26 +869,21 @@ async function startAdemolaXD() {
     ademolaBot.serializeM = (m) => smsg(ademolaBot, m, store)
 
     // Handle pairing code
-    if (pairingCode && !ademolaBot.authState.creds.registered) {
+    if (requestPairing && !sessionLoaded) {
         if (useMobile) throw new Error('Cannot use pairing code with mobile api')
 
-        let phoneNumber
-        if (!!global.phoneNumber) {
-            phoneNumber = global.phoneNumber
-        } else {
-            phoneNumber = await question(chalk.bgBlack(chalk.greenBright(`Please type your WhatsApp number 😍\nFormat: 263714757857 (without + or spaces) : `)))
-        }
+        let pairingPhoneNumber = phoneNumber || await question(chalk.bgBlack(chalk.greenBright(`Please type your WhatsApp number 😍\nFormat: 263714757857 (without + or spaces) : `)))
 
-        phoneNumber = phoneNumber.replace(/[^0-9]/g, '')
+        pairingPhoneNumber = pairingPhoneNumber.replace(/[^0-9]/g, '')
         const pn = require('awesome-phonenumber');
-        if (!pn('+' + phoneNumber).isValid()) {
+        if (!pn('+' + pairingPhoneNumber).isValid()) {
             console.log(chalk.red('Invalid phone number. Please enter your full international number (e.g., 263714757857 for Zimbabwe, 447911123456 for UK, etc.) without + or spaces.'));
             process.exit(1);
         }
 
         setTimeout(async () => {
             try {
-                let code = await ademolaBot.requestPairingCode(phoneNumber)
+                let code = await ademolaBot.requestPairingCode(pairingPhoneNumber)
                 code = code?.match(/.{1,4}/g)?.join("-") || code
                 console.log(chalk.black(chalk.bgGreen(`Your Pairing Code : `)), chalk.black(chalk.white(code)))
                 console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
@@ -899,35 +932,26 @@ async function startAdemolaXD() {
         if (connection == "open") {
             console.log(chalk.magenta(` `))
             console.log(chalk.bold.blue(`🤖 Connected to => ` + JSON.stringify(ademolaBot.user, null, 2)))
-            
-            const botNumber = ademolaBot.user.id.split(':')[0] + '@s.whatsapp.net';
+
+            // Auto-detect owner from bot's own identity
+            const botUserJid = ademolaBot.user.id.split(':')[0] + '@s.whatsapp.net';
+            global.ownerJid = botUserJid;
+            console.log(chalk.green(`👑 Owner auto-detected: ${global.ownerJid}`));
+
+            const botNumber = botUserJid;
             const botName = ademolaBot.user?.name || ademolaBot.user?.pushName || 'Ademola Bot';
             
             // Check antidelete status on startup
             const antideleteConfig = loadAntideleteConfig();
-            const currentSettings = loadSettings();
             
-            await ademolaBot.sendMessage(botNumber, { 
-                image: { url: 'https://i.ibb.co/VWt5CXzX/malvin-xd.jpg' },
-                caption: `
-╭════════════════╮
-┆  \`🤖 ᴀᴅᴇᴍᴏʟᴀ - xᴅ\`  
-╰════════════════╯
-
-👋 Hey ${botName} 🤩  
-🎉 Deployment Complete – You're good to go!  
-
-📌 ᴘʀᴇғɪx: ${getPrefix()}
-📦 ᴄᴏᴍᴍᴀɴᴅs: ${commands.length}
-🔧 ᴍᴏᴅᴇ: ${toTinyCaps(currentSettings.commandMode?.toUpperCase() || 'ᴘᴜʙʟɪᴄ')}
-📢 Channels: Followed ✅️
-
-🍴 ғᴏʀᴋ ɴ ⭐ ᴍʏ ʀᴇᴘᴏ: https://github.com/XdKing2/MALVIN-XD/fork
-                    
-> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ
-`,
-                ...channelInfo
-            });
+            try {
+                const { buildMainMenu } = require('./plugins/a-menu');
+                const menuText = await buildMainMenu();
+                await ademolaBot.sendMessage(botNumber, { text: menuText });
+            } catch (menuErr) {
+                console.error('Failed to send startup menu:', menuErr);
+                await ademolaBot.sendMessage(botNumber, { text: `🤖 *${botName}* is ready!\n📌 Prefix: ${getPrefix()}\n📦 Commands: ${commands.length}` });
+            }
 
             await delay(1999)
             console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ ${global.botname} ]`)}\n\n`))
@@ -959,10 +983,10 @@ async function startAdemolaXD() {
                     rmSync(SESSION_DIR, { recursive: true, force: true })
                 } catch { }
                 console.log(chalk.red('Session logged out. Please re-authenticate.'))
-                startAdemolaXD()
-            } else {
-                startAdemolaXD()
             }
+            console.log(chalk.yellow(`🔄 Reconnecting in 3s... (code: ${statusCode || 'unknown'})`));
+            await delay(3000);
+            startAdemolaXD();
         }
     })
 

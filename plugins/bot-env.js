@@ -1,4 +1,5 @@
 const { ademola, fakevCard } = require("../ademola");
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const { loadSettings, saveSettings, updateSetting } = require('../lib/settingsManager');
 const fs = require('fs');
 const path = require('path');
@@ -92,7 +93,11 @@ ademola({
             const quotedMessage = mek.message.extendedTextMessage.contextInfo;
             
             if (quotedMessage.quotedMessage?.imageMessage) {
-                const imageBuffer = await ademola.downloadMediaMessage(quotedMessage, 'buffer', {}, {});
+                const stream = await downloadContentFromMessage(quotedMessage.quotedMessage.imageMessage, 'image');
+                let imageBuffer = Buffer.from([]);
+                for await (const chunk of stream) {
+                    imageBuffer = Buffer.concat([imageBuffer, chunk]);
+                }
                 
                 // Upload to catbox
                 const tempFilePath = path.join(os.tmpdir(), `botimg_${Date.now()}.jpg`);

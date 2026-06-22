@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { ademola, fakevCard } = require('../ademola');
-const isOwnerOrSudo = require('../lib/index'); // Import owner check
+const isOwnerOrSudo = require('../lib/isOwner'); // Import owner check
 
 // Ademola XD Clear Session Command - Fixed for Groups
 ademola({

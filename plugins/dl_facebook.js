@@ -36,19 +36,16 @@ async function sendFbLoading(ademola, from, action = "Processing") {
     };
 }
 
-// Multiple Facebook download APIs for fallback
 const fbApis = [
     {
-        name: "Prince Techn",
-        url: (url) => `https://api.princetechn.com/api/download/facebook?apikey=prince&url=${encodeURIComponent(url)}`
+        name: "Nexoracle",
+        url: (url) => `https://api.nexoracle.com/downloader/facebook?apikey=${process.env.NEXORACLE_API_KEY || 'e276311658d835109c'}&url=${encodeURIComponent(url)}`,
+        parse: (data) => data?.result?.hd || data?.result?.sd
     },
     {
-        name: "Arya API",
-        url: (url) => `https://aryaa-apis.vercel.app/api/fbdl?url=${encodeURIComponent(url)}`
-    },
-    {
-        name: "Stacemaker",
-        url: (url) => `https://stacemaker.vercel.app/api/fbdl?url=${encodeURIComponent(url)}`
+        name: "Facebook Downloader",
+        url: (url) => `https://fbdownloader.net/api/?url=${encodeURIComponent(url)}`,
+        parse: (data) => data?.download_url
     }
 ];
 
@@ -171,25 +168,11 @@ ademola({
                 console.log(`Trying ${api.name} API...`);
                 const data = await fetchFromFacebookApi(api, resolvedUrl);
                 
-                // Parse response based on API structure
-                if (api.name === "Prince Techn") {
-                    if (data?.status === 200 && data?.result) {
-                        videoData = data.result.hd_video || data.result.sd_video;
-                        apiUsed = api.name;
-                        break;
-                    }
-                } else if (api.name === "Arya API") {
-                    if (data?.urls?.hd || data?.urls?.sd) {
-                        videoData = data.urls.hd || data.urls.sd;
-                        apiUsed = api.name;
-                        break;
-                    }
-                } else if (api.name === "Stacemaker") {
-                    if (data?.hd || data?.sd) {
-                        videoData = data.hd || data.sd;
-                        apiUsed = api.name;
-                        break;
-                    }
+                const parsedUrl = api.parse(data);
+                if (parsedUrl) {
+                    videoData = parsedUrl;
+                    apiUsed = api.name;
+                    break;
                 }
             } catch (error) {
                 console.log(`${api.name} failed:`, error.message);

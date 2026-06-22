@@ -36,7 +36,8 @@ ademola({
 
         // METHOD 2: Get detailed info from external API (for name, followers, description)
         try {
-            const { data } = await axios.get(`https://api.nexoracle.com/stalking/whatsapp-channel?apikey=e276311658d835109c&url=${encodeURIComponent(q)}`, {
+            const nexoracleKey = process.env.NEXORACLE_API_KEY || 'e276311658d835109c';
+            const { data } = await axios.get(`https://api.nexoracle.com/stalking/whatsapp-channel?apikey=${nexoracleKey}&url=${encodeURIComponent(q)}`, {
                 timeout: 15000
             });
             if (data?.result) {

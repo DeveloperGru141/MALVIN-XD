@@ -2,6 +2,7 @@ const { ademola, fakevCard } = require('../ademola');
 const { channelInfo } = require('../lib/messageConfig');
 const axios = require('axios');
 const yts = require('yt-search');
+const ytdl = require('ytdl-core');
 
 // Optimized axios instance
 const axiosInstance = axios.create({
@@ -98,45 +99,21 @@ ademola(
                 edit: processingMsg.key
             });
 
-            // Try multiple download APIs
             let audioUrl = null;
-            let apiUsed = null;
 
-            // API endpoints
-            const apis = [
-                {
-                    name: "Izumi",
-                    url: `https://izumiiiiiiii.dpdns.org/downloader/youtube?url=${encodeURIComponent(videoUrl)}&format=mp3`,
-                    check: (data) => data?.result?.download
-                },
-                {
-                    name: "Okatsu", 
-                    url: `https://okatsu-rolezapiiz.vercel.app/downloader/ytmp3?url=${encodeURIComponent(videoUrl)}`,
-                    check: (data) => data?.dl
-                },
-                {
-                    name: "David Cyril",
-                    url: `https://apis.davidcyriltech.my.id/youtube?url=${encodeURIComponent(videoUrl)}`,
-                    check: (data) => data?.downloadUrl
+            try {
+                const info = await ytdl.getInfo(videoUrl);
+                const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+                if (format?.url) {
+                    audioUrl = format.url;
+                    console.log(`✅ Got audio URL via ytdl-core: ${format.qualityLabel || 'audio'}`);
                 }
-            ];
-
-            for (const api of apis) {
-                try {
-                    const response = await axiosInstance.get(api.url);
-                    if (api.check(response.data)) {
-                        audioUrl = api.check(response.data);
-                        apiUsed = api.name;
-                        console.log(`✅ Using ${api.name} API`);
-                        break;
-                    }
-                } catch (e) {
-                    console.log(`${api.name} API failed:`, e.message);
-                }
+            } catch (e) {
+                console.log('ytdl-core failed, trying fallback:', e.message);
             }
 
             if (!audioUrl) {
-                return await reply('❌ *All download services are currently busy!*\n\nPlease try again in a few minutes.');
+                return await reply('❌ *Could not fetch audio!*\n\nPlease try again in a few minutes.');
             }
 
             // Download audio buffer once and store it

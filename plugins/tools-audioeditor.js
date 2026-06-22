@@ -1,7 +1,7 @@
 const { ademola, fakevCard } = require("../ademola");
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const audioEditor = require('../lib/audioeditor');
 
-// Common function for audio processing
 async function processAudioEffect(ademola, mek, from, effectName, effectFunction, reply) {
     try {
         const quotedMsg = mek.message?.extendedTextMessage?.contextInfo?.quotedMessage;
@@ -10,17 +10,14 @@ async function processAudioEffect(ademola, mek, from, effectName, effectFunction
             return await reply(`🔊 *${effectName} Effect*\n\nPlease reply to an audio or video message to apply the effect.`);
         }
 
-        // Send processing reaction
         await ademola.sendMessage(from, { react: { text: '⏳', key: mek.key } });
         
-        // Download the media
         const mediaType = quotedMsg.audioMessage ? 'audioMessage' : 'videoMessage';
-        const mediaBuffer = await ademola.downloadMediaMessage(
-            { message: { [mediaType]: quotedMsg[mediaType] } },
-            'buffer',
-            {},
-            {}
-        );
+        const stream = await downloadContentFromMessage(quotedMsg[mediaType], mediaType.split('Message')[0]);
+        let mediaBuffer = Buffer.from([]);
+        for await (const chunk of stream) {
+            mediaBuffer = Buffer.concat([mediaBuffer, chunk]);
+        }
 
         const ext = mediaType === 'videoMessage' ? 'mp4' : 'mp3';
         const audio = await effectFunction(mediaBuffer, ext);
@@ -71,7 +68,7 @@ ademola({
 // ==================== FAT EFFECT ====================
 ademola({
     pattern: "fat",
-    alias: ["bassy", "bassboost"],
+    alias: ["bassy"],
     desc: "Make audio sound fat/bassy",
     category: "audio",
     react: "🍔",

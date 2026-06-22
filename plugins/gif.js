@@ -16,8 +16,7 @@ ademola({
             return await reply('🎬 Please provide a search term for the GIF!\n\nExample: .gif hello');
         }
 
-        // Use Giphy API key from settings or fallback
-        const apiKey = settings.giphyApiKey || 'GIPHY_API_KEY'; // Replace with actual API key
+        const apiKey = process.env.GIPHY_API_KEY || settings.giphyApiKey;
 
         const response = await axios.get(`https://api.giphy.com/v1/gifs/search`, {
             params: {

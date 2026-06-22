@@ -9,10 +9,9 @@ ademola({
     react: "🧹",
     use: ".clear",
     filename: __filename,
-}, async (ademola, mek, m, { from, reply, isAdmin, isGroup }) => {
+}, async (ademola, mek, m, { from, reply, isAdmin, isGroup, sender }) => {
     try {
         const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
-        // Check permissions
         if (isGroup) {
             const adminStatus = await isAdmin();
             if (!adminStatus.isBotAdmin) {
@@ -56,9 +55,8 @@ ademola({
     react: "💥",
     use: ".clearall",
     filename: __filename,
-}, async (ademola, mek, m, { from, reply, isAdmin, isGroup }) => {
+}, async (ademola, mek, m, { from, reply, isAdmin, isGroup, sender }) => {
     try {
-    
         const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
         // Strict permissions - only owner in private or admin in groups
         if (isGroup) {
@@ -129,7 +127,7 @@ ademola({
     react: "⚡",
     use: ".purge",
     filename: __filename,
-}, async (ademola, mek, m, { from, reply }) => {
+}, async (ademola, mek, m, { from, reply, sender }) => {
     try {
          const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
         // Owner only command
@@ -154,5 +152,3 @@ ademola({
         // Silent fail for owner commands
     }
 });
-
-module.exports = {};

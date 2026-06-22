@@ -7,6 +7,7 @@
 const { ademola, fakevCard } = require('../ademola');
 const axios = require('axios');
 const yts = require('yt-search');
+const ytdl = require('ytdl-core');
 
 ademola({
     pattern: "play",
@@ -39,25 +40,18 @@ ademola({
             caption: `🎵 *${video.title}*\n⏱ ${video.timestamp}\n\n⬇️ Downloading...`
         }, { quoted: fakevCard });
 
-        // Try download APIs
         let audioUrl;
-        
-        // Try Izumi API first
+
         try {
-            const izumiRes = await axios.get(`https://izumiiiiiiii.dpdns.org/downloader/youtube?url=${encodeURIComponent(video.url)}&format=mp3`);
-            audioUrl = izumiRes.data?.result?.download;
+            const info = await ytdl.getInfo(video.url);
+            const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+            audioUrl = format?.url;
         } catch (e) {
-            // Try Okatsu API as fallback
-            try {
-                const okatsuRes = await axios.get(`https://okatsu-rolezapiiz.vercel.app/downloader/ytmp3?url=${encodeURIComponent(video.url)}`);
-                audioUrl = okatsuRes.data?.dl;
-            } catch (e2) {
-                return await reply('❌ All download services are busy. Try again later.');
-            }
+            console.error('ytdl-core failed:', e.message);
         }
 
         if (!audioUrl) {
-            return await reply('❌ Failed to get download link.');
+            return await reply('❌ Failed to get download link. Try again later.');
         }
 
         // Send audio

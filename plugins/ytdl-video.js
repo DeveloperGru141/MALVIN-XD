@@ -8,19 +8,7 @@ const { ademola, fakevCard } = require('../ademola');
 const { channelInfo } = require('../lib/messageConfig');
 const axios = require('axios');
 const yts = require('yt-search');
-
-// Izumi API configuration
-const izumi = {
-    baseURL: "https://izumiiiiiiii.dpdns.org"
-};
-
-const AXIOS_DEFAULTS = {
-    timeout: 60000,
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*'
-    }
-};
+const ytdl = require('ytdl-core');
 
 // Fast loading animation for video download
 async function sendVideoLoading(ademola, from, action = "Processing") {
@@ -48,44 +36,11 @@ async function sendVideoLoading(ademola, from, action = "Processing") {
     };
 }
 
-async function tryRequest(getter, attempts = 3) {
-    let lastError;
-    for (let attempt = 1; attempt <= attempts; attempt++) {
-        try {
-            return await getter();
-        } catch (err) {
-            lastError = err;
-            if (attempt < attempts) {
-                await new Promise(r => setTimeout(r, 1000 * attempt));
-            }
-        }
-    }
-    throw lastError;
-}
-
-async function getIzumiVideoByUrl(youtubeUrl) {
-    const apiUrl = `${izumi.baseURL}/downloader/youtube?url=${encodeURIComponent(youtubeUrl)}&format=720`;
-    const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
-    if (res?.data?.result?.download) return res.data.result;
-    throw new Error('Izumi video API returned no download');
-}
-
-async function getOkatsuVideoByUrl(youtubeUrl) {
-    const apiUrl = `https://okatsu-rolezapiiz.vercel.app/downloader/ytmp4?url=${encodeURIComponent(youtubeUrl)}`;
-    const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
-    if (res?.data?.result?.mp4) {
-        return { download: res.data.result.mp4, title: res.data.result.title };
-    }
-    throw new Error('Okatsu ytmp4 returned no mp4');
-}
-
-async function getDavidCyrilVideoByUrl(youtubeUrl) {
-    const apiUrl = `https://apis.davidcyriltech.my.id/youtube?url=${encodeURIComponent(youtubeUrl)}`;
-    const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
-    if (res?.data?.downloadUrl) {
-        return { download: res.data.downloadUrl, title: res.data.title };
-    }
-    throw new Error('David Cyril API returned no download');
+async function getYtdlVideoByUrl(youtubeUrl) {
+    const info = await ytdl.getInfo(youtubeUrl);
+    const format = ytdl.chooseFormat(info.formats, { quality: 'highestvideo' });
+    if (!format?.url) throw new Error('No video format found');
+    return { download: format.url, title: info.videoDetails.title };
 }
 
 // Main video command
@@ -198,29 +153,19 @@ _⏳ *Downloading video...*_
         // Start download animation
         const downloadAnimation = await sendVideoLoading(ademola, from, "Downloading video...");
 
-        // Try multiple download APIs
         let videoData = null;
-        const apis = [
-            { name: "Izumi", func: getIzumiVideoByUrl },
-            { name: "Okatsu", func: getOkatsuVideoByUrl },
-            { name: "David Cyril", func: getDavidCyrilVideoByUrl }
-        ];
 
-        for (const api of apis) {
-            try {
-                console.log(`Trying ${api.name} API...`);
-                videoData = await api.func(videoUrl);
-                console.log(`✅ Success with ${api.name} API`);
-                break;
-            } catch (apiError) {
-                console.log(`❌ ${api.name} API failed:`, apiError.message);
-                continue;
-            }
+        try {
+            console.log('Fetching video via ytdl-core...');
+            videoData = await getYtdlVideoByUrl(videoUrl);
+            console.log('✅ Success with ytdl-core');
+        } catch (ytdlError) {
+            console.log('❌ ytdl-core failed:', ytdlError.message);
         }
 
         if (!videoData) {
             downloadAnimation.stop();
-            return await reply('❌ *All download services are busy!*\n\nPlease try again in a few minutes.');
+            return await reply('❌ *Could not fetch video!*\n\nPlease try again in a few minutes.');
         }
 
         // Stop download animation

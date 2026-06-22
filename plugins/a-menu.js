@@ -50,24 +50,15 @@ function buildCategoryMenu(prefix, cat) {
 
 const activeListeners = new Map();
 
-ademola({
-    pattern: "menu",
-    alias: ["m", "allmenu", "help", "h"],
-    desc: "Show all bot commands in organized categories",
-    category: "general",
-    react: "📚",
-    use: ".menu",
-    filename: __filename,
-}, async (ademola, mek, m, { from, reply, prefix, sender }) => {
-    try {
-        const currentSettings = loadSettings();
-        const totalCommands = commands.filter(cmd => cmd.category && cmd.pattern && !cmd.dontAdd).length;
-        const timezone = currentSettings.timezone || settings.timezone || 'Africa/Harare';
-        const t = moment().tz(timezone);
-        const currentPrefix = getCurrentPrefix();
-        const forks = await fetchGitHubForks();
+async function buildMainMenu() {
+    const currentSettings = loadSettings();
+    const totalCommands = commands.filter(cmd => cmd.category && cmd.pattern && !cmd.dontAdd).length;
+    const timezone = currentSettings.timezone || settings.timezone || 'Africa/Harare';
+    const t = moment().tz(timezone);
+    const currentPrefix = getCurrentPrefix();
+    const forks = await fetchGitHubForks();
 
-        const mainMenu = `╭─ 🤖 ${toTinyCaps(currentSettings.botName || settings.botName || 'ademola-xd')} ─╮
+    return `╭─ 🤖 ${toTinyCaps(currentSettings.botName || settings.botName || 'ademola-xd')} ─╮
 │ 👤 Owner: ${toTinyCaps(currentSettings.botOwner || settings.botOwner || 'ademola')}
 │ ⏰ ${t.format('HH:mm:ss')}  📅 ${t.format('DD/MM/YYYY')}
 │ 🌍 Mode: ${toTinyCaps(currentSettings.commandMode || 'public')}
@@ -81,6 +72,19 @@ ademola({
 ${numberedCategories.map(c => `  ${c.num}  ${c.name}`).join('\n')}
 
 💡 Send a number (1-9) to see commands with descriptions`;
+}
+
+ademola({
+    pattern: "menu",
+    alias: ["m", "allmenu", "help", "h"],
+    desc: "Show all bot commands in organized categories",
+    category: "general",
+    react: "📚",
+    use: ".menu",
+    filename: __filename,
+}, async (ademola, mek, m, { from, reply, prefix, sender }) => {
+    try {
+        const mainMenu = await buildMainMenu();
 
         if (activeListeners.has(sender)) {
             const old = activeListeners.get(sender);
@@ -141,3 +145,5 @@ ${numberedCategories.map(c => `  ${c.num}  ${c.name}`).join('\n')}
         await reply('❌ Failed to load menu. Please try again.');
     }
 });
+
+module.exports = { buildMainMenu, buildCategoryMenu };

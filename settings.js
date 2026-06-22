@@ -13,7 +13,7 @@ const settings = {
   author: 'ᴀᴅᴇᴍᴏʟᴀ ᴋɪɴɢ',
   version: '2.1.1',
   prefix: '.',
-  giphyApiKey: 'qnl7ssQChTdPjsKta2Ax2LMaGXz303tq',
+  giphyApiKey: process.env.GIPHY_API_KEY || 'qnl7ssQChTdPjsKta2Ax2LMaGXz303tq',
   maxStoreMessages: 20,
   storeWriteInterval: 10000,
   description: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ xᴅ",

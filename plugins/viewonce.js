@@ -1,5 +1,5 @@
 const { ademola, fakevCard } = require("../ademola");
-const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const { downloadContentFromMessage, downloadMediaMessage } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
 
@@ -230,7 +230,7 @@ ademola({
         let messageType;
 
         if (actualMessage.imageMessage) {
-            buffer = await ademola.downloadMediaMessage(
+            buffer = await downloadMediaMessage(
                 { message: { imageMessage: actualMessage.imageMessage } },
                 'buffer',
                 {},
@@ -240,7 +240,7 @@ ademola({
             messageType = "image";
         }
         else if (actualMessage.videoMessage) {
-            buffer = await ademola.downloadMediaMessage(
+            buffer = await downloadMediaMessage(
                 { message: { videoMessage: actualMessage.videoMessage } },
                 'buffer',
                 {},
@@ -250,7 +250,7 @@ ademola({
             messageType = "video";
         }
         else if (actualMessage.audioMessage) {
-            buffer = await ademola.downloadMediaMessage(
+            buffer = await downloadMediaMessage(
                 { message: { audioMessage: actualMessage.audioMessage } },
                 'buffer',
                 {},

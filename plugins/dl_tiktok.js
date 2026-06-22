@@ -22,19 +22,11 @@ ademola({
     const processingMsg = await reply("⏳ Processing your TikTok link...");
 
     let data;
-    
-    // Try multiple APIs
     const apis = [
-      // API 1
-      `https://api.nexoracle.com/downloader/tiktok-nowm?apikey=free_key@maher_apis&url=${encodeURIComponent(tiktokUrl)}`,
-      // API 2
       `https://api.tikwm.com/?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
-      // API 3 - Alternative
       `https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}`,
-      // API 4 - Another alternative
       `https://api.tiktokdownload.me/?url=${encodeURIComponent(tiktokUrl)}`
     ];
-
     for (let apiUrl of apis) {
       try {
         console.log(`Trying API: ${apiUrl}`);
