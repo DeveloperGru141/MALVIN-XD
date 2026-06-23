@@ -30,15 +30,8 @@ QUICK START
 1. Install dependencies:
    npm install --legacy-peer-deps
 
-2. Copy .env.example to .env and configure:
-   SESSION_ID=
-   OWNER_NUMBER=your-number
-   OWNER_NAME=YourName
-   BOT_NAME=ademola-xd
-   MODE=public
-   TIMEZONE=Africa/Lagos
 
-3. Run:
+2. Run:
    npm start
 
 
@@ -46,15 +39,10 @@ AUTHENTICATION
 --------------
 
 Pairing Code (first time):
-  1. Set SESSION_ID= (empty) in .env
-  2. Run npm start
-  3. Enter your WhatsApp number when prompted
-  4. Open WhatsApp > Linked Devices > Link a Device
-  5. Enter the pairing code shown in terminal
-
-Session ID (servers):
-  After pairing, base64-encode session/creds.json and set:
-  SESSION_ID=ademola~<base64-data>
+  1. Run npm start
+  2. Enter your WhatsApp number when prompted
+  3. Open WhatsApp > Linked Devices > Link a Device
+  4. Enter the pairing code shown in terminal
 
 
 COMMANDS
@@ -82,7 +70,6 @@ CREDITS
 -------
 
 Built by Ademola
-YouTube: https://youtube.com/@ademolatech2
 
 
 DISCLAIMER
