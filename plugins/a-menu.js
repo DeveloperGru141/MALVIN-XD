@@ -85,6 +85,7 @@ ademola({
 }, async (ademola, mek, m, { from, reply, prefix, sender }) => {
     try {
         const mainMenu = await buildMainMenu();
+        const currentPrefix = getCurrentPrefix();
 
         if (activeListeners.has(sender)) {
             const old = activeListeners.get(sender);
