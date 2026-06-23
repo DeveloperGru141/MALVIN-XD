@@ -793,31 +793,24 @@ async function startAdemolaXD() {
                     return originalReply(text, options);
                 };
 
-                // Execute the command with 3s timeout
-                const timeout = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('TIMEOUT')), 3000)
-                );
-                await Promise.race([
-                    command.function(ademola, mek, m, {
-                        from,
-                        args: args.slice(1),
-                        q,
-                        text: q,
-                        isGroup,
-                        sender: senderId,
-                        senderNumber: senderId.split('@')[0],
-                        botNumber: ademola.user.id.split(':')[0] + '@s.whatsapp.net',
-                        pushname: mek.pushName || 'User',
-                        isMe: mek.key.fromMe,
-                        isOwner: mek.key.fromMe || await isOwnerOrSudo(senderId),
-                        reply: loggedReply,
-                        isAdmin: async () => {
-                            if (!isGroup) return { isSenderAdmin: false, isBotAdmin: false };
-                            return await isAdmin(ademola, from, senderId);
-                        }
-                    }),
-                    timeout
-                ]);
+                await command.function(ademola, mek, m, {
+                    from,
+                    args: args.slice(1),
+                    q,
+                    text: q,
+                    isGroup,
+                    sender: senderId,
+                    senderNumber: senderId.split('@')[0],
+                    botNumber: ademola.user.id.split(':')[0] + '@s.whatsapp.net',
+                    pushname: mek.pushName || 'User',
+                    isMe: mek.key.fromMe,
+                    isOwner: mek.key.fromMe || await isOwnerOrSudo(senderId),
+                    reply: loggedReply,
+                    isAdmin: async () => {
+                        if (!isGroup) return { isSenderAdmin: false, isBotAdmin: false };
+                        return await isAdmin(ademola, from, senderId);
+                    }
+                });
                 
                 try {
                     const { addActivity } = require('./plugins/autostatus');
@@ -831,13 +824,7 @@ async function startAdemolaXD() {
                 await addCommandReaction(ademola, mek);
                 
             } catch (error) {
-                if (error.message === 'TIMEOUT') {
-                    console.log(`⏱️ CMD .${cmd} timed out after 3s`);
-                    pushActivity('timeout', `.${cmd}`);
-                    await ademola.sendMessage(from, { text: `⏱️ Command .${cmd} is taking too long. The bot is functional but the response may need more time.` }, { quoted: mek });
-                } else {
-                    await ademola.sendMessage(from, { text: `❌ Error: ${error.message}` }, { quoted: mek });
-                }
+                await ademola.sendMessage(from, { text: `❌ Error: ${error.message}` }, { quoted: mek });
             }
         }
     }
