@@ -6,7 +6,6 @@
 
 const { ademola, fakevCard } = require('../ademola');
 const { channelInfo } = require('../lib/messageConfig');
-const { igdl } = require('ruhend-scraper');
 const axios = require('axios');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -142,14 +141,21 @@ ademola({
         // Start ultra-fast loading
         const loadingAnimation = await sendStickerLoading(ademola, from, "Fetching Instagram media");
 
-        const downloadData = await igdl(q);
-        
-        if (!downloadData?.data?.length) {
+        const nexoracleKey = process.env.NEXORACLE_API_KEY || 'e276311658d835109c';
+        const igRes = await axios.get(`https://api.nexoracle.com/downloader/ig?apikey=${nexoracleKey}&url=${encodeURIComponent(q)}`, { timeout: 20000 });
+        const downloadData = igRes.data;
+
+        let mediaItems = [];
+        if (downloadData?.status === 200 && downloadData?.result?.data) {
+            mediaItems = downloadData.result.data;
+        } else if (downloadData?.data?.length) {
+            mediaItems = downloadData.data;
+        } else {
             loadingAnimation.stop();
             return await reply(`❌ *No media found!*\n\nPossible reasons:\n• Post is private\n• Link is invalid\n• Account is private\n\nPlease check the URL and try again.`);
         }
 
-        const mediaItems = downloadData.data.filter(item => item?.url);
+        mediaItems = mediaItems.filter(item => (item?.url || item?.download_url || item));
         
         if (!mediaItems.length) {
             loadingAnimation.stop();

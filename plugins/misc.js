@@ -55,7 +55,6 @@ const simpleEffects = [
     { pattern: "comrade", alias: [], desc: "Comrade filter", react: "☭" },
     { pattern: "gay", alias: [], desc: "Gay rainbow filter", react: "🏳️‍🌈" },
     { pattern: "glass", alias: [], desc: "Glass effect", react: "🔍" },
-    { pattern: "jail", alias: [], desc: "Jail bars effect", react: "🚔" },
     { pattern: "passed", alias: [], desc: "Passed away effect", react: "💀" },
     { pattern: "triggered", alias: [], desc: "Triggered effect", react: "🔫" }
 ];

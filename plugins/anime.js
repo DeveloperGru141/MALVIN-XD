@@ -100,7 +100,7 @@ ademola({
 });
 
 // Individual commands
-const animeTypes = ['hug', 'kiss', 'pat', 'poke', 'cry', 'wink', 'nom', 'facepalm', 'quote'];
+const animeTypes = ['hug', 'kiss', 'pat', 'poke', 'cry', 'wink', 'nom', 'facepalm'];
 animeTypes.forEach(type => {
     ademola({
         pattern: type,
@@ -111,4 +111,15 @@ animeTypes.forEach(type => {
     }, async (ademola, mek, m, { from, reply }) => {
         await sendAnimu(ademola, from, normalizeType(type));
     });
+});
+
+ademola({
+    pattern: "animequote",
+    alias: ["animuquote"],
+    desc: "Get anime quote content",
+    category: "fun",
+    react: "🎌",
+    filename: __filename,
+}, async (ademola, mek, m, { from, reply }) => {
+    await sendAnimu(ademola, from, 'quote');
 });
