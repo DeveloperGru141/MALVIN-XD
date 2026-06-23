@@ -553,6 +553,9 @@ async function startAdemolaXD() {
             const mek = chatUpdate.messages[0]
             if (!mek.message) return
             
+            // Mark message as read
+            await ademolaBot.readMessages([mek.key]).catch(() => {});
+
             // Enhanced message processing for antidelete
             mek.message = (Object.keys(mek.message)[0] === 'ephemeralMessage') ? mek.message.ephemeralMessage.message : mek.message
             
