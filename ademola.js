@@ -1,4 +1,5 @@
 var commands = [];
+var botSock = null;
 const { fakevCard } = require('./lib/fakevCard');
 
 function ademola(info, func) {
@@ -31,6 +32,14 @@ function ademola(info, func) {
 const settings = require('./settings');
 const prefix = settings.prefix || '.';
 
+function getSocket() {
+    return botSock;
+}
+
+function setSocket(sock) {
+    botSock = sock;
+}
+
 module.exports = {
     ademola,
     AddCommand: ademola,
@@ -38,5 +47,7 @@ module.exports = {
     Module: ademola,
     commands,
     fakevCard,
-    prefix
+    prefix,
+    getSocket,
+    setSocket
 };

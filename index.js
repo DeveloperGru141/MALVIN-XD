@@ -86,7 +86,7 @@ const toTinyCaps = (str) => {
 const { loadSettings } = require('./lib/settingsManager');
 
 // Import Ademola XD framework
-const { ademola, commands } = require('./ademola')
+const { ademola, commands, setSocket } = require('./ademola')
 // ========== CHANNEL INFO CONFIG =======
 const { channelInfo } = require('./lib/messageConfig')
 // Import lightweight store
@@ -146,23 +146,55 @@ if (persistentSettings && typeof persistentSettings === 'object') {
 
 // ========== ESSENTIAL FUNCTIONS ==========
 
-// Message count functions
-function incrementMessageCount(chatId, senderId) {
+// Message count functions - async batched to avoid blocking hot path
+let msgCountData = null;
+let msgCountDirty = false;
+let msgCountTimer = null;
+
+function loadMessageCount() {
+    if (msgCountData) return msgCountData;
     try {
-        const data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
-        if (!data.messages) data.messages = {};
-        if (!data.messages[chatId]) data.messages[chatId] = {};
-        data.messages[chatId][senderId] = (data.messages[chatId][senderId] || 0) + 1;
-        fs.writeFileSync('./data/messageCount.json', JSON.stringify(data, null, 2));
-    } catch (error) {
-        //console.error('Error incrementing message count:', error);
+        msgCountData = JSON.parse(fs.readFileSync('./data/messageCount.json'));
+    } catch (e) {
+        msgCountData = {};
     }
+    return msgCountData;
 }
+
+function flushMessageCount() {
+    if (!msgCountDirty) return;
+    try {
+        fs.writeFileSync('./data/messageCount.json', JSON.stringify(msgCountData, null, 2));
+        msgCountDirty = false;
+    } catch (e) { /* ignore */ }
+}
+
+function scheduleMessageCountFlush() {
+    if (msgCountTimer) return;
+    msgCountTimer = setTimeout(() => {
+        msgCountTimer = null;
+        flushMessageCount();
+    }, 30000);
+}
+
+function incrementMessageCount(chatId, senderId) {
+    const data = loadMessageCount();
+    if (!data.messages) data.messages = {};
+    if (!data.messages[chatId]) data.messages[chatId] = {};
+    data.messages[chatId][senderId] = (data.messages[chatId][senderId] || 0) + 1;
+    msgCountDirty = true;
+    scheduleMessageCountFlush();
+}
+
+process.on('exit', flushMessageCount);
+process.on('SIGINT', () => { flushMessageCount(); process.exit(0); });
+process.on('SIGTERM', () => { flushMessageCount(); process.exit(0); });
 
 function topMembers(sock, chatId, isGroup) {
     try {
         if (!isGroup) return;
-        const data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
+        flushMessageCount();
+        const data = msgCountData || JSON.parse(fs.readFileSync('./data/messageCount.json'));
         const chatData = data.messages?.[chatId];
         if (!chatData) {
             sock.sendMessage(chatId, { text: 'No message data available for this group.' });
@@ -323,8 +355,8 @@ setInterval(() => {
 // Memory monitoring
 setInterval(() => {
     const used = process.memoryUsage().rss / 1024 / 1024
-    if (used > 400) {
-        console.log('⚠️ RAM too high (>400MB), restarting bot...')
+    if (used > 600) {
+        console.log('⚠️ RAM too high (>600MB), restarting bot...')
         process.exit(1)
     }
 }, 30_000)
@@ -376,6 +408,20 @@ function loadPlugins() {
         });
         
         console.log(chalk.cyan(`🎯 Total commands registered: ${commands.length}`));
+    }
+}
+
+// Clean stale session files to prevent Bad MAC errors
+function cleanStaleSessions() {
+    try {
+        const files = fs.readdirSync(SESSION_DIR).filter(f => f.startsWith('session-') || f.startsWith('tctoken-'));
+        if (files.length < 50) return;
+        files.sort((a, b) => fs.statSync(path.join(SESSION_DIR, a)).mtimeMs - fs.statSync(path.join(SESSION_DIR, b)).mtimeMs);
+        const toRemove = files.slice(0, files.length - 50);
+        toRemove.forEach(f => { try { fs.unlinkSync(path.join(SESSION_DIR, f)); } catch {} });
+        if (toRemove.length > 0) console.log(chalk.yellow(`🧹 Pruned ${toRemove.length} old session files (${files.length - toRemove.length} kept)`));
+    } catch (e) {
+        console.error('Session cleanup error:', e.message);
     }
 }
 
@@ -489,6 +535,7 @@ async function startAdemolaXD() {
         console.log(chalk.yellow(!requestPairing ? '📱 QR code will be displayed for authentication.' : '🔑 Pairing code will be requested...'));
     }
 
+    cleanStaleSessions()
     let { version, isLatest } = await fetchLatestBaileysVersion()
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
     const msgRetryCounterCache = new NodeCache()
@@ -515,6 +562,7 @@ async function startAdemolaXD() {
     })
 
     store.bind(ademolaBot.ev)
+    setSocket(ademolaBot)
 
     // Load all plugins
     loadPlugins();
@@ -553,9 +601,6 @@ async function startAdemolaXD() {
             const mek = chatUpdate.messages[0]
             if (!mek.message) return
             
-            // Mark message as read
-            await ademolaBot.readMessages([mek.key]).catch(() => {});
-
             // Enhanced message processing for antidelete
             mek.message = (Object.keys(mek.message)[0] === 'ephemeralMessage') ? mek.message.ephemeralMessage.message : mek.message
             
@@ -589,6 +634,15 @@ async function startAdemolaXD() {
             // Handle autoread functionality
             await handleAutoread(ademolaBot, mek);
             
+            // AFK return detection
+            try {
+                const { handleAfkReturn } = require('./plugins/afk');
+                const senderIdAfk = mek.key.participant || mek.key.remoteJid;
+                if (!mek.key.fromMe) await handleAfkReturn(ademolaBot, mek, mek.key.remoteJid, senderIdAfk);
+            } catch (e) {
+                console.error('AFK return error:', e.message);
+            }
+            
             // Newsletter react functionality
             if (mek.key && newsletterJids.includes(mek.key.remoteJid)) {
               try {
@@ -616,7 +670,10 @@ async function startAdemolaXD() {
               //  console.error('Error checking bot mode:', error);
             }
             
-            if (!isPublic && !mek.key.fromMe && chatUpdate.type === 'notify') return
+            if (!isPublic && !mek.key.fromMe && chatUpdate.type === 'notify') {
+                const msgSender = mek.key.participant || mek.key.remoteJid;
+                if (!(await isOwnerOrSudo(msgSender))) return;
+            }
             if (mek.key.id.startsWith('BAE5') && mek.key.id.length === 16) return
 
             // Clear message retry cache to prevent memory bloat
@@ -751,6 +808,14 @@ async function startAdemolaXD() {
                 }
             }
             
+            // Handle sticker auto-reply (DM or when bot is mentioned in group)
+            try {
+                const { handleStickerReply } = require('./plugins/stickerreply');
+                await handleStickerReply(ademola, mek, from, senderId);
+            } catch (e) {
+                console.error('Sticker reply error:', e.message);
+            }
+            
             // Handle group-specific features
             if (isGroup) {
                 // Chatbot response
@@ -839,7 +904,7 @@ async function startAdemolaXD() {
     }
 
     ademolaBot.getName = (jid, withoutContact = false) => {
-        id = ademolaBot.decodeJid(jid)
+        let id = ademolaBot.decodeJid(jid)
         withoutContact = ademolaBot.withoutContact || withoutContact
         let v
         if (id.endsWith("@g.us")) return new Promise(async (resolve) => {
@@ -971,7 +1036,9 @@ async function startAdemolaXD() {
  
 `))
             console.log(chalk.bold.yellow(`< ================================== >`))
-                              
+
+            setInterval(cleanStaleSessions, 6 * 60 * 60 * 1000);
+                               
         }
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode
@@ -1007,7 +1074,10 @@ process.on('unhandledRejection', (err) => {
 })
 
 let file = require.resolve(__filename)
+let hotReloading = false
 fs.watchFile(file, () => {
+    if (hotReloading) return
+    hotReloading = true
     fs.unwatchFile(file)
     console.log(chalk.redBright(`Update ${__filename}`))
     delete require.cache[file]

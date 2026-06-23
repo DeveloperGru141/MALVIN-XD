@@ -1,5 +1,6 @@
 const { ademola, fakevCard } = require('../ademola');
 const { channelInfo } = require('../lib/messageConfig');
+const ownerSettings = require('../setting');
 
 ademola({
     pattern: "owner",
@@ -14,7 +15,7 @@ ademola({
         // Load owner info from settings
         
         const ownerName = "ᴀᴅᴇᴍᴏʟᴀ ᴋɪɴɢ";
-        const ownerNumber = "263780958186";
+        const ownerNumber = ownerSettings.OWNER_NUMBER;
         
         // Create vCard
         const vcard = 'BEGIN:VCARD\n' + 

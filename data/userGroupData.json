@@ -8,5 +8,9 @@
   "welcome": {},
   "goodbye": {},
   "chatbot": {},
-  "autoReaction": false
+  "autoReaction": false,
+  "autoreply": {
+    "enabled": false,
+    "message": "I'm currently away. I'll get back to you soon!"
+  }
 }

@@ -28,7 +28,6 @@ const numberedCategories = [
     { num: 6, name: 'MEDIA & STICKERS', cats: ['MEDIA', 'STICKER', 'MAKER', 'AUDIO'] },
     { num: 7, name: 'BOT SETTINGS', cats: ['SETTINGS', 'SECURITY', 'MODERATION'] },
     { num: 8, name: 'TEXT & EFFECTS', cats: ['TEXTMAKER'] },
-    { num: 9, name: 'IMAGE & FILTERS', cats: ['IMAGE'] },
 ];
 
 function buildCategoryMenu(prefix, cat) {
@@ -106,6 +105,7 @@ function setupMenuListener(ademola, from, sender, reply, mainMenuText) {
 
     ademola.ev.on('messages.upsert', messageListener);
     activeListeners.set(sender, { listener: messageListener, timeout });
+    console.log(`📋 Menu listener active for ${sender.split('@')[0]} (5min timeout)`);
 }
 
 async function buildMainMenu() {
@@ -127,12 +127,12 @@ async function buildMainMenu() {
 
 ${numberedCategories.map(c => `  ${c.num}  ${c.name}`).join('\n')}
 
-💡 Send a number (1-9) to see commands with descriptions`;
+💡 Send a number (1-8) to see commands with descriptions`;
 }
 
 ademola({
     pattern: "menu",
-    alias: ["m", "allmenu", "help", "h"],
+    alias: ["m", "allmenu", "h"],
     desc: "Show all bot commands in organized categories",
     category: "general",
     react: "📚",

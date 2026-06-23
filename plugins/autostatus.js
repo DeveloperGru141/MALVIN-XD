@@ -196,10 +196,27 @@ function getActivity() {
 }
 
 // Function to handle status updates
+const processedStatuses = new Set();
+setInterval(() => {
+    processedStatuses.clear();
+}, 60000);
+
 async function handleStatusUpdate(ademola, status) {
     try {
         if (!isAutoStatusEnabled()) {
             return;
+        }
+
+        // Dedup: skip status IDs already processed within the interval
+        let msgId = null;
+        if (status.messages && status.messages.length > 0) {
+            msgId = status.messages[0].key?.id;
+        } else if (status.key) {
+            msgId = status.key.id;
+        }
+        if (msgId) {
+            if (processedStatuses.has(msgId)) return;
+            processedStatuses.add(msgId);
         }
 
         // Add delay to prevent rate limiting

@@ -2,7 +2,9 @@ const { ademola, fakevCard } = require("../ademola");
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 
 ademola({
     pattern: "bratvid",
@@ -64,13 +66,13 @@ ademola({
         const outputVideoPath = path.join(tempDir, "output.mp4");
 
         // Combine frames into video
-        execSync(
+        await execAsync(
             `ffmpeg -y -f concat -safe 0 -i "${fileListPath}" -vf "fps=30" -c:v libx264 -preset superfast -pix_fmt yuv420p "${outputVideoPath}"`
         );
 
         // Convert to webp sticker
         const outputStickerPath = path.join(tempDir, "output.webp");
-        execSync(
+        await execAsync(
             `ffmpeg -i "${outputVideoPath}" -vf "scale=512:512:flags=lanczos,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=#00000000" -loop 0 -preset picture -an -vsync 0 -r 15 "${outputStickerPath}"`
         );
 

@@ -277,7 +277,7 @@ ademola({
 // ==================== SHOW SETTINGS ====================
 ademola({
     pattern: "env",
-    alias: ["config", "env"],
+    alias: ["envset", "env"],
     desc: "Show current bot settings",
     category: "settings",
     react: "⚙️",

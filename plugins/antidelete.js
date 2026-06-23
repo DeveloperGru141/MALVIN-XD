@@ -418,12 +418,18 @@ async function handleMessageRevocation(ademola, update) {
             return;
         }
 
-        console.log('🔄 Processing potential deletion...');
+        // === CRITICAL: Verify this is actually a revocation (deletion) ===
+        const isRevocation = update.update?.messageStubType === 'REVOKE' ||
+            update.update?.message?.protocolMessage?.type === 0;
+        if (!isRevocation) {
+            return;
+        }
+
+        console.log('🔄 Processing deletion...');
 
         let messageId;
         let deletedBy;
 
-        // Only process if we have a valid message ID
         if (update.key && update.key.id) {
             messageId = update.key.id;
             deletedBy = update.participant || update.key.participant;
