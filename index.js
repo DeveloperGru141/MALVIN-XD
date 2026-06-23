@@ -941,7 +941,7 @@ async function startAdemolaXD() {
             const botNumber = botUserJid;
             const botName = ademolaBot.user?.name || ademolaBot.user?.pushName || 'Ademola Bot';
             
-            // Check antidelete status on startup
+            const currentSettings = loadSettings();
             const antideleteConfig = loadAntideleteConfig();
             
             try {

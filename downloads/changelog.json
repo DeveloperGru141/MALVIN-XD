@@ -1,0 +1,17 @@
+{
+  "latest": {
+    "commit": "6e8b861",
+    "message": "fix menu interactive category numbers broken by refactor",
+    "date": "2026-06-23",
+    "files": ["plugins/a-menu.js", "data/messageCount.json"]
+  },
+  "history": [
+    { "commit": "6e8b861", "message": "fix menu interactive category numbers broken by refactor" },
+    { "commit": "43029e2", "message": "update message count tracking data" },
+    { "commit": "8f7f587", "message": "move messageCount.json to data folder" },
+    { "commit": "b6b51c3", "message": "all codebase changes are in place, ready to commit" },
+    { "commit": "fdb726b", "message": "refactored still alive plugin to use settings manager instead of settings.js" },
+    { "commit": "2e68eaf", "message": "refactored entire codebase, removed unused files, added new features, and improved performance." },
+    { "commit": "6a2c5b7", "message": "Restore numbered reply system on main menu, keep text-only" }
+  ]
+}

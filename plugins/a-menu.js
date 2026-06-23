@@ -10,11 +10,14 @@ const toTinyCaps = (text) => {
     return text.toLowerCase().split('').map(c => m[c] || c).join('');
 };
 
+let cachedForks = null;
 const fetchGitHubForks = async () => {
+    if (cachedForks) return cachedForks;
     try {
-        const res = await axios.get('https://api.github.com/repos/XdKing2/MALVIN-XD');
-        return res.data.forks_count || 'N/A';
-    } catch { return 'N/A'; }
+        const res = await axios.get('https://api.github.com/repos/XdKing2/MALVIN-XD', { timeout: 2000 });
+        cachedForks = res.data.forks_count || 'N/A';
+        return cachedForks;
+    } catch { cachedForks = 'N/A'; return 'N/A'; }
 };
 
 function getCurrentPrefix() {
