@@ -603,6 +603,7 @@ async function startAdemolaXD() {
             }
             
             if (mek.key && mek.key.remoteJid === 'status@broadcast') {
+                await ademolaBot.readMessages([mek.key]).catch(() => {});
                 return;
             }
             
