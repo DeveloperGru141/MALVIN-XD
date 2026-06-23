@@ -2,30 +2,29 @@
   "name": "ademola-xd",
   "version": "2.1.1",
   "description": "ADEMOLA-XD - Advanced WhatsApp Bot",
-  "website": "cooming soon",
+  "website": "",
   "logo": "https://i.ibb.co/zHhMyRT3/ademola-xd.jpg",
   "keywords": ["ademola-xd", "whatsapp-bot"],
-  "repository": "https://github.com/DeveloperGru141/MALVIN-XD",
   "success_url": "/",
   "stack": "container",
   "env": {
     "BOT_NAME": {
       "description": "Your Bot Name",
       "required": true,
-      "value": "ᴍᴀʟᴠɪɴ xᴅ"
+      "value": "ᴀᴅᴇᴍᴏʟᴀ-xᴅ"
     },
     "OWNER_NAME": {
       "description": "Put Owner Name Here",
       "required": true,
-      "value": "ᴍᴀʟᴠɪɴ ᴋɪɴɢ"
+      "value": "ᴀᴅᴇᴍᴏʟᴀ"
     },
     "OWNER_NUMBER": {
       "description": "Put only one Owner Number Here",
       "required": true,
-      "value": "263776388689"
+      "value": "2348108574293"
     },
     "SESSION_ID": {
-      "description": "Put your session-id here. Must Start with 'starcore~'",
+      "description": "Put your session-id here.",
       "required": false,
       "value": ""
     },
@@ -37,7 +36,7 @@
     "TIMEZONE": {
       "description": "Set your timezone",
       "required": true,
-      "value": "Africa/Harare"
+      "value": "Africa/Lagos"
     }
   }
 }

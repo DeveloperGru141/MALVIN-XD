@@ -110,7 +110,7 @@ ademola({
 📁 *Size:* ${formatBytes(buffer.length)}
 🔗 *URL:* ${res.data}
 
-> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ-xᴅ
+> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ-xᴅ
     `.trim();
 
     await ademola.sendMessage(from, {
@@ -324,12 +324,21 @@ ademola({
     const encodedQ = encodeURIComponent(question);
     const encodedUrl = encodeURIComponent(docUrl);
     
-    const geminiRes = await axios.get(`https://bk9.fun/ai/GeminiDocs?q=${encodedQ}&url=${encodedUrl}`, {
-      timeout: 45000
-    });
-    
-    const result = geminiRes.data;
-    const aiResponse = result.BK9 || result.response || result.answer || "No analysis available.";
+    let aiResponse;
+
+    try {
+      const pollRes = await axios.get(`https://text.pollinations.ai/${encodeURIComponent(`Document URL: ${docUrl}\n\nQuestion: ${question}\n\nPlease analyze this document based on its URL. If you cannot access the URL directly, provide general guidance based on the question.`)}?model=openai&system=${encodeURIComponent('You are a document analysis AI. Provide helpful analysis based on the question asked.')}`, {
+        timeout: 45000
+      });
+      aiResponse = typeof pollRes.data === 'string' ? pollRes.data.trim() : 'Analysis completed.';
+    } catch {
+      try {
+        const mistralRes = await axios.get(`https://text.pollinations.ai/${encodeURIComponent(`Document: ${docUrl}\nQ: ${question}\n\nAnalyze:`)}?model=mistral`, { timeout: 30000 });
+        aiResponse = typeof mistralRes.data === 'string' ? mistralRes.data.trim() : 'Analysis completed.';
+      } catch {
+        aiResponse = `Document uploaded to ${docUrl}\n\nQuestion: ${question}\n\nI was unable to analyze the document content directly. Please try asking a more specific question.`;
+      }
+    }
 
     const message = `
 📄 *Document Analysis*

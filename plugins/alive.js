@@ -42,8 +42,6 @@ const formatStatusInfo = (pushname, harareTime, harareDate, runtimeHours, runtim
 │   ᴜsᴇ ɪᴛ ᴡɪsᴇʟʏ ᴀɴᴅ ᴀᴛ ʏᴏᴜʀ ᴏᴡɴ ʀɪsᴋ ⚠️ 
 │
 ╰───〔 🥰 〕───
-🔗 ɢɪᴛʜᴜʙ: https://short.abella.icu/fOg
-
 > ${settings.description}
 `.trim();
 

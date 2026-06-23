@@ -2,7 +2,88 @@
 const { ademola, fakevCard } = require("../ademola");
 const axios = require('axios');
 
-// Microsoft Copilot Command
+const POLLINATIONS_BASE = 'https://text.pollinations.ai';
+
+async function askAI(prompt, model = 'openai', system = 'You are a helpful AI assistant.') {
+    const models = [...new Set([model, 'openai', 'mistral'])];
+    let lastErr;
+
+    for (const m of models) {
+        try {
+            let url = `${POLLINATIONS_BASE}/${encodeURIComponent(prompt.slice(0, 2000))}`;
+            const params = new URLSearchParams();
+            if (m) params.set('model', m);
+            if (system) params.set('system', system.slice(0, 500));
+            const qs = params.toString();
+            if (qs) url += '?' + qs;
+
+            const res = await axios.get(url, { timeout: 30000 });
+            let text = '';
+            if (typeof res.data === 'string') text = res.data;
+            else if (res.data?.output) text = res.data.output;
+            else if (res.data?.text) text = res.data.text;
+            else if (res.data?.response) text = res.data.response;
+            else text = String(res.data || '');
+
+            if (text.trim()) return text.trim();
+        } catch (e) {
+            lastErr = e;
+        }
+    }
+    throw lastErr || new Error('All models failed');
+}
+
+// Claude
+ademola({
+    pattern: "claude",
+    alias: ["claudeai", "anthropic"],
+    desc: "Claude-style AI (by Anthropic)",
+    category: "ai",
+    react: "🤖",
+    use: ".claude <your question>",
+    filename: __filename,
+}, async (ademola, mek, m, { from, q, reply, sender }) => {
+    try {
+        if (!q) return reply('Please provide a question.\n\nExample: .claude explain quantum computing');
+        await reply('_🤖 Asking Claude... Please wait._');
+        const answer = await askAI(q, 'openai', 'You are Claude, an AI assistant created by Anthropic. Be thoughtful, nuanced, and conversational in your responses.');
+        await ademola.sendMessage(from, {
+            text: `🤖 *Claude Response:*\n\n${answer}\n\n👤 *Asked by:* @${sender.split('@')[0]}`,
+            mentions: [sender],
+            contextInfo: { mentionedJid: [sender], quotedMessage: mek.message }
+        }, { quoted: fakevCard });
+    } catch (error) {
+        console.error('Error:', error);
+        await reply('❌ Failed to get response.');
+    }
+});
+
+// Llama
+ademola({
+    pattern: "llama",
+    alias: ["llamaai", "metaai"],
+    desc: "Llama-style AI (by Meta)",
+    category: "ai",
+    react: "🦙",
+    use: ".llama <your question>",
+    filename: __filename,
+}, async (ademola, mek, m, { from, q, reply, sender }) => {
+    try {
+        if (!q) return reply('Please provide a question.\n\nExample: .llama explain machine learning');
+        await reply('_🦙 Asking Llama... Please wait._');
+        const answer = await askAI(q, 'openai', 'You are Llama, an AI model created by Meta AI. Be helpful, detailed, and precise in your responses.');
+        await ademola.sendMessage(from, {
+            text: `🦙 *Llama Response:*\n\n${answer}\n\n👤 *Asked by:* @${sender.split('@')[0]}`,
+            mentions: [sender],
+            contextInfo: { mentionedJid: [sender], quotedMessage: mek.message }
+        }, { quoted: fakevCard });
+    } catch (error) {
+        console.error('Error:', error);
+        await reply('❌ Failed to get response.');
+    }
+});
+
+// Copilot
 ademola({
     pattern: "copilot",
     alias: ["msai", "microsoftai", "bingai"],
@@ -13,253 +94,104 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, q, reply, sender }) => {
     try {
-        if (!q) {
-            return reply('Please provide a question for Microsoft Copilot.\n\nExample: .copilot explain quantum computing in simple terms');
-        }
-
-        await reply('_🤖 Consulting with Microsoft Copilot... Please wait._');
-
-        const response = await axios.get(`https://ademola-api.vercel.app/ai/copilot?text=${encodeURIComponent(q)}`);
-        
-        if (response.data && response.data.result) {
-            const answer = response.data.result;
-            
-            await ademola.sendMessage(from, {
-                text: `🤖 *Microsoft Copilot Response:*\n\n${answer}\n\n👤 *Asked by:* @${sender.split('@')[0]}`,
-                mentions: [sender],
-                contextInfo: {
-                    mentionedJid: [sender],
-                    quotedMessage: mek.message
-                }
-            }, {
-                quoted: fakevCard
-            });
-        } else {
-            throw new Error('Invalid response from Copilot API');
-        }
-
+        if (!q) return reply('Please provide a question.\n\nExample: .copilot explain quantum computing');
+        await reply('_🤖 Consulting Microsoft Copilot... Please wait._');
+        const answer = await askAI(q, 'openai', 'You are Microsoft Copilot. Provide clear, concise, accurate answers.');
+        await ademola.sendMessage(from, {
+            text: `🤖 *Copilot Response:*\n\n${answer}\n\n👤 *Asked by:* @${sender.split('@')[0]}`,
+            mentions: [sender],
+            contextInfo: { mentionedJid: [sender], quotedMessage: mek.message }
+        }, { quoted: fakevCard });
     } catch (error) {
-        console.error('Error in copilot command:', error);
-        
-        if (error.code === 'ECONNABORTED') {
-            await reply('❌ Request timeout. Copilot is taking too long to respond. Please try again.');
-        } else if (error.response?.status === 429) {
-            await reply('❌ Rate limit exceeded. Please wait a few minutes before asking another question.');
-        } else {
-            await reply('❌ Failed to get response from Microsoft Copilot. Please try again later.');
-        }
+        console.error('Error:', error);
+        await reply('❌ Failed to get response.');
     }
 });
 
-// Microsoft Copilot Deep Thinking Command
+// Deep Think
 ademola({
     pattern: "think",
-    alias: ["deepthink", "copilotthink", "deepai"],
-    desc: "Deep thinking mode with Microsoft Copilot",
+    alias: ["deepthink", "deepai"],
+    desc: "Deep reasoning mode",
     category: "ai",
     react: "🧠",
     use: ".think <your complex question>",
     filename: __filename,
 }, async (ademola, mek, m, { from, q, reply, sender }) => {
     try {
-        if (!q) {
-            return reply('Please provide a complex question for deep thinking mode.\n\nExample: .think analyze the ethical implications of artificial intelligence in healthcare');
-        }
-
-        await reply('_🧠 Microsoft Copilot is thinking deeply... This may take a moment._');
-
-        const response = await axios.get(`https://ademola-api.vercel.app/ai/copilot-think?text=${encodeURIComponent(q)}`);
-        
-        if (response.data && response.data.result) {
-            const answer = response.data.result;
-            
-            await ademola.sendMessage(from, {
-                text: `🧠 *Microsoft Copilot - Deep Thinking:*\n\n${answer}\n\n💭 *Deep analysis completed*\n👤 *Requested by:* @${sender.split('@')[0]}`,
-                mentions: [sender],
-                contextInfo: {
-                    mentionedJid: [sender],
-                    quotedMessage: mek.message
-                }
-            }, {
-                quoted: fakevCard
-            });
-        } else {
-            throw new Error('Invalid response from Copilot Deep Thinking API');
-        }
-
+        if (!q) return reply('Please provide a complex question.\n\nExample: .think analyze the ethics of AI');
+        await reply('_🧠 Processing deep analysis... Please wait._');
+        const answer = await askAI(q, 'mistral', 'You are a deep reasoning AI. Provide thorough analysis with multiple perspectives and step-by-step reasoning.');
+        await ademola.sendMessage(from, {
+            text: `🧠 *Deep Analysis:*\n\n${answer}\n\n👤 *Requested by:* @${sender.split('@')[0]}`,
+            mentions: [sender],
+            contextInfo: { mentionedJid: [sender], quotedMessage: mek.message }
+        }, { quoted: fakevCard });
     } catch (error) {
-        console.error('Error in think command:', error);
-        
-        if (error.code === 'ECONNABORTED') {
-            await reply('❌ Request timeout. Deep thinking is taking longer than expected. Please try again.');
-        } else if (error.response?.status === 429) {
-            await reply('❌ Rate limit exceeded. Please wait before another deep thinking request.');
-        } else {
-            await reply('❌ Failed to get deep thinking response. Please try again later.');
-        }
+        console.error('Error:', error);
+        await reply('❌ Failed to get response.');
     }
 });
 
-// Microsoft Copilot GPT-5 Command
-ademola({
-    pattern: "gpt5",
-    alias: ["gpt5", "copilotgpt5", "msgpt5"],
-    desc: "Advanced GPT-5 mode with Microsoft Copilot",
-    category: "ai",
-    react: "🚀",
-    use: ".gpt5 <your advanced question>",
-    filename: __filename,
-}, async (ademola, mek, m, { from, q, reply, sender }) => {
-    try {
-        if (!q) {
-            return reply('Please provide an advanced question for GPT-5 mode.\n\nExample: .gpt5 explain the potential applications of quantum machine learning in drug discovery');
-        }
-
-        await reply('_🚀 Engaging GPT-5 advanced mode... Please wait._');
-
-        const response = await axios.get(`https://ademola-api.vercel.app/ai/gpt-5?text=${encodeURIComponent(q)}`);
-        
-        if (response.data && response.data.result) {
-            const answer = response.data.result;
-            
-            await ademola.sendMessage(from, {
-                text: `🚀 *Microsoft Copilot - GPT-5 Advanced:*\n\n${answer}\n\n⚡ *Powered by GPT-5 Technology*\n👤 *Requested by:* @${sender.split('@')[0]}`,
-                mentions: [sender],
-                contextInfo: {
-                    mentionedJid: [sender],
-                    quotedMessage: mek.message
-                }
-            }, {
-                quoted: fakevCard
-            });
-        } else {
-            throw new Error('Invalid response from GPT-5 API');
-        }
-
-    } catch (error) {
-        console.error('Error in gpt5 command:', error);
-        
-        if (error.code === 'ECONNABORTED') {
-            await reply('❌ Request timeout. GPT-5 processing is taking longer than expected. Please try again.');
-        } else if (error.response?.status === 429) {
-            await reply('❌ Rate limit exceeded. Please wait before another GPT-5 request.');
-        } else {
-            await reply('❌ Failed to get GPT-5 response. Please try again later.');
-        }
-    }
-});
-
-
+// GPT
 ademola({
     pattern: "gpt",
     alias: ["ai", "chatgpt"],
-    desc: "Get AI response from ChatGPT",
+    desc: "ChatGPT AI response",
     category: "ai",
     react: "🤖",
     use: ".gpt <your question>",
     filename: __filename,
 }, async (ademola, mek, m, { from, q, reply }) => {
     try {
-        if (!q) {
-            return reply("Please provide a question after .gpt\n\nExample: .gpt write a basic html code");
-        }
-
-        // Use Ademola API for GPT
-        const response = await axios.get(`https://ademola-api.vercel.app/ai/openai?text=${encodeURIComponent(q)}`);
-        
-        if (response.data && response.data.result) {
-            const answer = response.data.result;
-            
-            await ademola.sendMessage(from, {
-                text: `🤖 *ChatGPT Response:*\n\n${answer}`,
-                contextInfo: {
-                    mentionedJid: [m.sender],
-                    quotedMessage: mek.message
-                }
-            }, {
-                quoted: fakevCard
-            });
-        } else {
-            throw new Error('Invalid response from API');
-        }
+        if (!q) return reply("Please provide a question.\n\nExample: .gpt write html code");
+        await reply('_🤖 Getting response... Please wait._');
+        const answer = await askAI(q, 'openai');
+        await ademola.sendMessage(from, { text: `🤖 *AI Response:*\n\n${answer}` }, { quoted: fakevCard });
     } catch (error) {
-        console.error('GPT Error:', error);
-        await reply("❌ Failed to get GPT response. Please try again later.");
+        console.error('Error:', error);
+        await reply("❌ Failed to get response.");
     }
 });
 
+// Gemini
 ademola({
     pattern: "gemini",
     alias: ["googleai"],
-    desc: "Get AI response from Gemini",
+    desc: "Google Gemini AI response",
     category: "ai",
-    react: "🤖", 
+    react: "🤖",
     use: ".gemini <your question>",
     filename: __filename,
 }, async (ademola, mek, m, { from, q, reply }) => {
     try {
-        if (!q) {
-            return reply("Please provide a question after .gemini");
-        }
-
-        // Use Ademola API for Gemini (Venice)
-        const response = await axios.get(`https://ademola-api.vercel.app/ai/venice?text=${encodeURIComponent(q)}`);
-        
-        if (response.data && response.data.result) {
-            const answer = response.data.result;
-            
-            await ademola.sendMessage(from, {
-                text: `🤖 *Gemini Response:*\n\n${answer}`,
-                contextInfo: {
-                    mentionedJid: [m.sender],
-                    quotedMessage: mek.message
-                }
-            }, {
-                quoted: fakevCard
-            });
-        } else {
-            throw new Error('Invalid response from API');
-        }
+        if (!q) return reply("Please provide a question.\n\nExample: .gemini explain quantum physics");
+        await reply('_🤖 Getting Gemini response... Please wait._');
+        const answer = await askAI(q, 'openai', 'You are Google Gemini, an AI by Google. Provide informative, well-structured responses.');
+        await ademola.sendMessage(from, { text: `🤖 *Gemini Response:*\n\n${answer}` }, { quoted: fakevCard });
     } catch (error) {
-        console.error('Gemini Error:', error);
-        await reply("❌ Failed to get Gemini response. Please try again later.");
+        console.error('Error:', error);
+        await reply("❌ Failed to get response.");
     }
 });
 
+// Venice
 ademola({
     pattern: "venice",
     alias: ["veniceai"],
-    desc: "Get AI response from Venice AI",
+    desc: "Venice AI response",
     category: "ai",
     react: "🤖",
     use: ".venice <your question>",
     filename: __filename,
 }, async (ademola, mek, m, { from, q, reply }) => {
     try {
-        if (!q) {
-            return reply("Please provide a question after .venice");
-        }
-
-        // Use Ademola API for Venice AI
-        const response = await axios.get(`https://ademola-api.vercel.app/ai/venice?text=${encodeURIComponent(q)}`);
-        
-        if (response.data && response.data.result) {
-            const answer = response.data.result;
-            
-            await ademola.sendMessage(from, {
-                text: `🤖 *Venice AI Response:*\n\n${answer}`,
-                contextInfo: {
-                    mentionedJid: [m.sender],
-                    quotedMessage: mek.message
-                }
-            }, {
-                quoted: fakevCard
-            });
-        } else {
-            throw new Error('Invalid response from Venice API');
-        }
+        if (!q) return reply("Please provide a question.\n\nExample: .venice explain privacy in AI");
+        await reply('_🤖 Getting Venice AI response... Please wait._');
+        const answer = await askAI(q, 'mistral', 'You are Venice AI, a privacy-focused assistant. Provide thoughtful responses with privacy in mind.');
+        await ademola.sendMessage(from, { text: `🤖 *Venice AI Response:*\n\n${answer}` }, { quoted: fakevCard });
     } catch (error) {
-        console.error('Venice AI Error:', error);
-        await reply("❌ Failed to get Venice AI response. Please try again later.");
+        console.error('Error:', error);
+        await reply("❌ Failed to get response.");
     }
 });

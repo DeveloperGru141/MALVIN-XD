@@ -71,7 +71,7 @@ COMMANDS
   .menu text         — Show text effects
   .menu image        — Show image filters
 
-  .ping              — Check bot response speed
+  .ping              — Check bot response speedz
   .alive             — Show bot status and system info
   .owner             — Send owner contact card
   .autoreply on/off  — Auto-reply when away
@@ -81,8 +81,7 @@ COMMANDS
 CREDITS
 -------
 
-Built by Ademola King
-GitHub: https://github.com/XdKing2
+Built by Ademola
 YouTube: https://youtube.com/@ademolatech2
 
 

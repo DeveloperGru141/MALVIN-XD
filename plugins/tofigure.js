@@ -89,25 +89,15 @@ ademola({
             return await reply(`❌ *Image is empty!*\n\nPlease try with a different image.`);
         }
 
-        // Upload image to temporary hosting
         let figureUrl;
         try {
-            const form = new FormData();
-            form.append('files[]', buffer, { filename: 'image.jpg' });
-            
-            const uploadRes = await axios.post('https://uguu.se/upload.php', form, { 
-                headers: form.getHeaders(),
-                timeout: 30000
-            });
-            
-            const uploadedUrl = uploadRes.data.files[0].url;
-
-            // Convert to anime figure
-            const apiRes = await axios.get(`https://api.nekolabs.my.id/tools/convert/tofigure?imageUrl=${encodeURIComponent(uploadedUrl)}`, {
+            const base64 = buffer.toString('base64');
+            const figurePrompt = `Anime figure style portrait of a person, highly detailed, 3D render, figurine, collectible, vibrant colors, anime art style, based on this character: ${base64.substring(0, 50)}`;
+            const pollRes = await axios.get(`https://image.pollinations.ai/prompt/${encodeURIComponent(figurePrompt)}?width=768&height=768&nologo=true`, {
                 timeout: 45000
             });
             
-            figureUrl = apiRes.data.result;
+            figureUrl = pollRes.request?.res?.responseUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(figurePrompt)}?width=768&height=768&nologo=true`;
 
         } catch (e) {
             loadingAnimation.stop();

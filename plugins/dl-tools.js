@@ -1,7 +1,6 @@
 const { ademola, fakevCard } = require('../ademola');
 const axios = require('axios');
 
-
 ademola({
     pattern: "mediafire",
     alias: ["mf", "mediafiredl"],
@@ -19,29 +18,27 @@ ademola({
     await ademola.sendMessage(from, { react: { text: '⏳', key: mek.key } });
 
     const encodedUrl = encodeURIComponent(q);
-    const apiUrl = `https://api.nekolabs.web.id/downloader/mediafire?url=${encodedUrl}`;
+    const apiUrl = `https://api.nexoracle.com/downloader/mediafire?apikey=${process.env.NEXORACLE_API_KEY || ''}&url=${encodedUrl}`;
     
     const response = await axios.get(apiUrl);
     const data = response.data;
 
-    // Check if the API call was successful
-    if (!data.success || !data.result) {
+    if (!data.status || !data.result) {
       return reply('❌ *Failed to fetch file information.*\n\nPlease check the URL and try again.');
     }
 
     const fileInfo = data.result;
-    const filename = fileInfo.filename;
-    const filesize = fileInfo.filesize;
-    const mimetype = fileInfo.mimetype;
-    const uploaded = fileInfo.uploaded;
-    const downloadUrl = fileInfo.download_url;
+    const filename = fileInfo.filename || fileInfo.name;
+    const filesize = fileInfo.filesize || fileInfo.size;
+    const mimetype = fileInfo.mimetype || fileInfo.type;
+    const uploaded = fileInfo.uploaded || fileInfo.date;
+    const downloadUrl = fileInfo.download_url || fileInfo.link;
 
     if (!downloadUrl) {
       return reply('❌ *Download link not available.*\n\nThe file may be removed or inaccessible.');
     }
 
-    // Send file info first
-    const infoMessage = `📁 *MediaFire Download*\n\n📄 *Filename:* ${filename}\n📦 *Size:* ${filesize}\n📅 *Uploaded:* ${uploaded}\n📋 *Type:* ${mimetype}\n\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`;
+    const infoMessage = `📁 *MediaFire Download*\n\n📄 *Filename:* ${filename}\n📦 *Size:* ${filesize}\n📅 *Uploaded:* ${uploaded || 'N/A'}\n📋 *Type:* ${mimetype || 'N/A'}\n\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
     await ademola.sendMessage(from, { 
       text: infoMessage,
@@ -50,12 +47,11 @@ ademola({
 
     await reply(`📥 *Downloading ${filename}...*`);
 
-    // Send the file
     await ademola.sendMessage(from, {
       document: { url: downloadUrl },
       fileName: filename,
       mimetype: mimetype,
-      caption: `📁 ${filename}\n📦 ${filesize}\n👤 @${sender.split('@')[0]}\n\n © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`,
+      caption: `📁 ${filename}\n📦 ${filesize}\n👤 @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`,
       mentions: [sender]
     }, { quoted: fakevCard });
 
@@ -75,8 +71,6 @@ ademola({
   }
 });
 
-
-// Google Drive Download Command
 ademola({
   pattern: "gdrive",
   alias: ["gdrivedownload", "gdownloader"],
@@ -95,7 +89,7 @@ ademola({
 
     const apiUrl = `https://api.nexoracle.com/downloader/gdrive`;
     const params = {
-      apikey: 'free_key@maher_apis',
+      apikey: process.env.NEXORACLE_API_KEY || '',
       url: q,
     };
 
@@ -116,7 +110,7 @@ ademola({
 
     const fileBuffer = Buffer.from(fileResponse.data, 'binary');
 
-    const caption = `📥 *File Details*\n\n🔖 *Name:* ${fileName}\n📏 *Size:* ${fileSize}\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍʀ ᴍᴀʟᴠɪɴ ᴋɪɴɢ`;
+    const caption = `📥 *File Details*\n\n🔖 *Name:* ${fileName}\n📏 *Size:* ${fileSize}\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
     if (mimetype.startsWith('image')) {
       await ademola.sendMessage(from, {
@@ -148,43 +142,8 @@ ademola({
   }
 });
 
-// GitHub Download Command
-ademola({
-    pattern: "githubdl",
-    alias: ['gitdl', 'githubdownload'],
-    react: '📦',
-    desc: "Download GitHub repository as ZIP file",
-    category: "download",
-    use: ".githubdl <username> <repository> <branch>",
-    filename: __filename
-}, async (ademola, mek, m, { from, q, reply, sender }) => {
-    const args = q ? q.split(' ') : [];
-    
-    if (!args[0]) {
-        return reply("❌ *Username is required!*\n\nExample: .githubdl username repository branch");
-    }
-    if (!args[1]) {
-        return reply("❌ *Repository name is required!*\n\nExample: .githubdl username repository branch");
-    }
-    if (!args[2]) {
-        return reply("❌ *Branch name is required!*\n\nExample: .githubdl username repository branch");
-    }
-    
-    const [username, repo, branch] = args;
-    const url = `https://github.com/${username}/${repo}/archive/refs/heads/${branch}.zip`;
-    
-    await reply("📦 *Compressing repository to ZIP file...*");
 
-    await ademola.sendMessage(from, {
-        document: { url: url },
-        fileName: `${repo}-${branch}.zip`,
-        mimetype: 'application/zip',
-        caption: `📦 *GitHub Repository Download*\n\n👤 *User:* ${username}\n📁 *Repo:* ${repo}\n🌿 *Branch:* ${branch}\n👤 *Downloaded by:* @${sender.split('@')[0]}\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`,
-        mentions: [sender]
-    }, { quoted: fakevCard });
-});
 
-// Twitter Download Command
 ademola({
     pattern: 'twitter',
     alias: ['tweet', 'twdl', 'twitterdl'],
@@ -201,14 +160,19 @@ ademola({
 
         await ademola.sendMessage(from, { react: { text: '⏳', key: mek.key } });
 
-        const response = await axios.get(`https://www.dark-yasiya-api.site/download/twitter?url=${encodeURIComponent(q)}`);
-        const data = response.data;
+        const nexoracleKey = process.env.NEXORACLE_API_KEY || '';
+        const nexRes = await axios.get(`https://api.nexoracle.com/downloader/twitter?apikey=${nexoracleKey}&url=${encodeURIComponent(q)}`, { timeout: 10000 });
+        const data = nexRes.data;
 
-        if (!data?.status || !data.result) {
+        if (!data?.result) {
             return reply('❌ *Failed to fetch Twitter video*');
         }
 
-        const { desc = 'No description', thumb, video_sd, video_hd } = data.result;
+        const result = data.result;
+        const desc = result.desc || result.text || result.title || 'No description';
+        const thumb = result.thumb || result.thumbnail || result.image;
+        const video_sd = result.video_sd || result.video || result.url_sd || result.sd;
+        const video_hd = result.video_hd || result.video_hd || result.url_hd || result.hd || video_sd;
 
         const caption = `
 📹 *Twitter Video Download*
@@ -221,7 +185,7 @@ ademola({
 👤 *Requested by:* @${sender.split('@')[0]}
 
 *Reply with 1 or 2 to download*
-> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`;
+> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
         const sentMsg = await ademola.sendMessage(from, {
             image: { url: thumb },
@@ -229,14 +193,12 @@ ademola({
             mentions: [sender]
         }, { quoted: fakevCard });
 
-        // Store the video URLs for later use
         const videoData = {
             sd: video_sd,
             hd: video_hd,
             timestamp: Date.now()
         };
 
-        // Simple response handler (you might want to implement a proper session system)
         ademola.ev.on('messages.upsert', async ({ messages }) => {
             const receivedMsg = messages[0];
             if (!receivedMsg.message || receivedMsg.key.remoteJid !== from) return;
@@ -275,7 +237,6 @@ ademola({
     }
 });
 
-// Image Search Command
 ademola({
     pattern: "img",
     alias: ["image", "searchimg"],
@@ -292,20 +253,32 @@ ademola({
 
         await reply(`🔍 *Searching for "${q}"...*`);
         
-        const url = `https://api.hanggts.xyz/search/gimage?q=${encodeURIComponent(q)}`;
-        const response = await axios.get(url);
-        
-        if (!response.data?.status || !response.data.result?.length) {
+        let images;
+
+        try {
+            const pixRes = await axios.get(`https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY || '48810274-0b9f91187a0e243bd5be3abb4'}&q=${encodeURIComponent(q)}&image_type=photo&per_page=5`, { timeout: 10000 });
+            if (pixRes.data?.hits?.length) {
+                images = pixRes.data.hits.map(h => ({ url: h.largeImageURL || h.webformatURL }));
+            }
+        } catch {}
+
+        if (!images) {
+            try {
+                const unsplashRes = await axios.get(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=5&client_id=${process.env.UNSPLASH_API_KEY || 'ab3411e4ac868c2646c0cd48860bb82c0c531c24c3e22068c4393ac7e47a86a7'}`, { timeout: 10000 });
+                if (unsplashRes.data?.results?.length) {
+                    images = unsplashRes.data.results.map(h => ({ url: h.urls?.regular || h.urls?.small }));
+                }
+            } catch {}
+        }
+
+        if (!images || images.length === 0) {
             return reply("❌ *No images found. Try different keywords*");
         }
         
-        const results = response.data.result;
-        const selectedImages = results.sort(() => 0.5 - Math.random()).slice(0, 5);
-        
-        for (const image of selectedImages) {
+        for (const image of images) {
             await ademola.sendMessage(from, { 
                 image: { url: image.url },
-                caption: `📷 *Result for:* ${q}\n👤 *Requested by:* @${sender.split('@')[0]}\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`,
+                caption: `📷 *Result for:* ${q}\n👤 *Requested by:* @${sender.split('@')[0]}\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`,
                 mentions: [sender]
             }, { quoted: fakevCard });
             
@@ -318,52 +291,4 @@ ademola({
     }
 });
 
-// GitHub Clone Command
-ademola({
-  pattern: 'gitclone',
-  alias: ["git", "github"],
-  desc: "Download GitHub repository as a zip file",
-  react: '📦',
-  category: "download",
-  use: ".gitclone <github-url>",
-  filename: __filename
-}, async (ademola, mek, m, { from, q, reply, sender }) => {
-  if (!q) {
-    return reply("❌ *GitHub link missing!*\n\nUsage: .gitclone https://github.com/username/repository");
-  }
 
-  if (!/^(https?:\/\/)?github\.com\/.+/.test(q)) {
-    return reply("❌ *Invalid GitHub URL!*\nPlease provide a valid GitHub repository link.");
-  }
-
-  try {
-    const regex = /github\.com\/([^\/]+)\/([^\/]+)(?:\.git)?/i;
-    const match = q.match(regex);
-
-    if (!match) throw new Error("Invalid GitHub URL format.");
-
-    const [, username, repo] = match;
-    const zipUrl = `https://api.github.com/repos/${username}/${repo}/zipball`;
-
-    const headResp = await axios.head(zipUrl);
-    if (headResp.status !== 200) throw new Error("Repository not found or inaccessible.");
-
-    const contentDisp = headResp.headers['content-disposition'] || "";
-    const fileNameMatch = contentDisp.match(/filename="?(.+)"?/);
-    const fileName = fileNameMatch ? fileNameMatch[1] : `${repo}.zip`;
-
-    await reply(`📥 *Downloading Repository...*\n\n👤 *User:* ${username}\n📁 *Repo:* ${repo}\n👤 *By:* @${sender.split('@')[0]}`);
-
-    await ademola.sendMessage(from, {
-      document: { url: zipUrl },
-      fileName,
-      mimetype: 'application/zip',
-      caption: `📦 *GitHub Repository*\n\n👤 *User:* ${username}\n📁 *Repo:* ${repo}\n👤 *Downloaded by:* @${sender.split('@')[0]}\n\n> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴋɪɴɢ 👑`,
-      mentions: [sender]
-    }, { quoted: fakevCard });
-
-  } catch (error) {
-    console.error("GitClone error:", error);
-    reply(`❌ *Download failed!*\n${error.message || "Please try again later."}`);
-  }
-});

@@ -33,8 +33,10 @@ ademola({
         // Get pack name from URL
         const packName = args[0].replace("https://t.me/addstickers/", "");
 
-        // Using working bot token
-        const botToken = '7801479976:AAGuPL0a7kXXBYz6XUSR_ll2SR5V_W6oHl4';
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        if (!botToken) {
+            return await reply('❌ Telegram bot token not configured. Set TELEGRAM_BOT_TOKEN in .env');
+        }
         
         try {
             // Fetch sticker pack info

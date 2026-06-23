@@ -945,11 +945,17 @@ async function startAdemolaXD() {
             const antideleteConfig = loadAntideleteConfig();
             
             try {
-                const { buildMainMenu } = require('./plugins/a-menu');
-                const menuText = await buildMainMenu();
-                await ademolaBot.sendMessage(botNumber, { text: menuText });
+                const welcomeMsg = `╭─ 🤖 *${botName}* ─╮
+│ ✅ Connected & Ready
+│ 📌 Prefix: *${getPrefix()}*
+│ 👑 Owner: ${botNumber.split('@')[0]}
+│ ⏰ ${new Date().toLocaleString()}
+╰────────────────────╯
+
+💡 Send *${getPrefix()}menu* to see all commands interactively`;
+                await ademolaBot.sendMessage(botNumber, { text: welcomeMsg });
             } catch (menuErr) {
-                console.error('Failed to send startup menu:', menuErr);
+                console.error('Failed to send startup message:', menuErr);
                 await ademolaBot.sendMessage(botNumber, { text: `🤖 *${botName}* is ready!\n📌 Prefix: ${getPrefix()}\n📦 Commands: ${commands.length}` });
             }
 

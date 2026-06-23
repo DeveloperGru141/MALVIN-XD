@@ -1,36 +1,23 @@
 const { ademola, fakevCard } = require("../ademola");
-const fetch = require('node-fetch');
 
-// ========== GOODNIGHT COMMAND ==========
-ademola({
-    pattern: "goodnight",
-    alias: ["gn", "night"],
-    desc: "Send romantic goodnight messages",
-    category: "fun",
-    react: "🌙",
-    use: ".goodnight",
-    filename: __filename,
-}, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
-    try {
-        const shizokeys = 'shizo';
-        const res = await fetch(`https://shizoapi.onrender.com/api/texts/lovenight?apikey=${shizokeys}`);
-        
-        if (!res.ok) {
-            throw await res.text();
-        }
-        
-        const json = await res.json();
-        const goodnightMessage = json.result;
+const goodnightMessages = [
+    "As the stars light up the sky, may your dreams be filled with joy and peace. Goodnight, sweet soul 🌙",
+    "Close your eyes and let the moonlight wrap you in its gentle embrace. Sleep well 💫",
+    "The day is done, the night is here. May your dreams be sweet and your rest be deep. Goodnight 🌟",
+    "Every sunset brings a promise of a new dawn. Sleep tight and wake up refreshed 🌄",
+    "Let go of today's worries and let the night wash them away. Tomorrow is a new beginning 🌌",
+    "Sending you a gentle breeze of love and peace to carry you through the night. Goodnight 💕",
+    "The moon is beautiful, the stars are bright, but nothing shines as bright as you. Sleep well ✨",
+    "Wrap yourself in cozy dreams and let the night embrace you. Goodnight, beautiful 🌠",
+    "May your dreams be as sweet as honey and as warm as sunshine. Goodnight and sweet dreams 🍯",
+    "The night is young, but you should rest. Your dreams are waiting to take you on an adventure 🌙",
+    "Close your eyes and count the stars. Each one is a wish for your happiness. Goodnight ⭐",
+    "Let the silence of the night fill your heart with peace. You deserve all the rest in the world 🌙",
+    "Tonight is a chapter ending, tomorrow is a new story. Sleep well and dream big 📖",
+    "The stars are singing lullabies just for you. Goodnight, dear one 🎵",
+    "Rest your head and let your heart be light. Tomorrow is a beautiful day 💫",
+];
 
-        await reply(`🌙 *Good Night*\n\n${goodnightMessage}`);
-        
-    } catch (error) {
-        console.error('Error in goodnight command:', error);
-        await reply('❌ Failed to get goodnight message. Please try again later!');
-    }
-});
-
-// ========== INSULT COMMAND ==========
 const insults = [
     "You're like a cloud. When you disappear, it's a beautiful day!",
     "You bring everyone so much joy when you leave the room!",
@@ -42,7 +29,6 @@ const insults = [
     "You're like a software update. Whenever I see you, I think, 'Do I really need this right now?'",
     "You bring everyone happiness... you know, when you leave.",
     "You're like a penny—two-faced and not worth much.",
-    "You have something on your mind... oh wait, never mind.",
     "You're the reason they put directions on shampoo bottles.",
     "You're like a cloud. Always floating around with no real purpose.",
     "Your jokes are like expired milk—sour and hard to digest.",
@@ -60,8 +46,26 @@ const insults = [
     "Your brain's running Windows 95—slow and outdated.",
     "You're like a speed bump—nobody likes you, but everyone has to deal with you.",
     "You're like a cloud of mosquitoes—just irritating.",
-    "You bring people together... to talk about how annoying you are."
+    "You bring people together... to talk about how annoying you are.",
 ];
+
+ademola({
+    pattern: "goodnight",
+    alias: ["gn", "night"],
+    desc: "Send romantic goodnight messages",
+    category: "fun",
+    react: "🌙",
+    use: ".goodnight",
+    filename: __filename,
+}, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
+    try {
+        const msg = goodnightMessages[Math.floor(Math.random() * goodnightMessages.length)];
+        await reply(`🌙 *Good Night*\n\n${msg}`);
+    } catch (error) {
+        console.error('Error in goodnight command:', error);
+        await reply('❌ Failed to get goodnight message. Please try again later!');
+    }
+});
 
 ademola({
     pattern: "insult",
@@ -74,18 +78,13 @@ ademola({
 }, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
     try {
         let targetJid;
-        
-        // SIMPLE METHOD: Same as promote/demote - check participant in contextInfo
+
         if (mek.message?.extendedTextMessage?.contextInfo?.participant) {
             targetJid = mek.message.extendedTextMessage.contextInfo.participant;
-            console.log('✅ Found user to insult:', targetJid);
-        }
-        // Check for mentioned users
-        else if (mek.message?.extendedTextMessage?.contextInfo?.mentionedJid) {
+        } else if (mek.message?.extendedTextMessage?.contextInfo?.mentionedJid) {
             targetJid = mek.message.extendedTextMessage.contextInfo.mentionedJid[0];
-            console.log('✅ Found mentioned user to insult:', targetJid);
         }
-        
+
         if (!targetJid) {
             return await reply('❌ Please mention the user or reply to their message to insult them!');
         }
@@ -98,7 +97,6 @@ ademola({
         }, {
             quoted: fakevCard
         });
-        
     } catch (error) {
         console.error('Error in insult command:', error);
         await reply('❌ Failed to send insult. Please try again!');

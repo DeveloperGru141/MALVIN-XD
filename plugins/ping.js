@@ -51,7 +51,7 @@ ademola({
 ┊ 💾 ᴍᴇᴍᴏʀʏ   : ${usedMem}GB / ${totalMem}GB
 ┊ 📦 ᴄᴍᴅs : ${require('../ademola').commands.length}
 ╰━━━━━━━━━━━━━━
-> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ 🪀
+> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ 🪀
 `.trim();
 
         await ademola.sendMessage(from, { 

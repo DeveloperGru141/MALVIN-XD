@@ -184,40 +184,54 @@ ademola({
     }
 });
 
-// ========== SHAYARI COMMAND ==========
-ademola({
-    pattern: "shayari",
-    alias: ["poem", "shayri"],
-    desc: "Get random shayari",
-    category: "fun",
-    react: "🪄",
-    use: ".shayari",
-    filename: __filename,
-}, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
-    try {
-        const response = await fetch('https://shizoapi.onrender.com/api/texts/shayari?apikey=shizo');
-        const data = await response.json();
-        
-        if (!data?.result) throw new Error('Invalid API response');
+const shayaris = [
+    "Tumhari ek muskaan ke liye hum kitna kuch kar guzarte hain,\nTumse door rehkar bhi hum tumse hi pyaar karte hain 🪄",
+    "Mohabbat mein andha hona koi bura nahi,\nAndha to wo hai jo tumhe dekhkar bhi na pahchane 💕",
+    "Dil ki baat labon tak aati nahi,\nMohabbat bhi humse kehti jaati nahi,\nTum itne kareeb ho ke,\nDoori ka ehsaas bhi aata nahi 💫",
+    "Har ek cheez mein tera hi nasha hai,\nHar subah teri hi yaadon ka jamana hai,\nTere bina adhoori si hai ye zindagi,\nTu mil gaya to lagta hai har gham bhulana hai ✨",
+    "Tumhari aankhon mein basa hai ek jahaan,\nTumhari baaton mein chhupa hai ek nishaan,\nTumse milke lagta hai jaise,\nMila ho mujhe koi khuda ka imtihaan 🌟",
+    "Sheeshe ki tarah hai dil mera,\nTodne se pehle soch lena,\nEk baar tootne ke baad,\nJodne mein puri zindagi lag jaati hai 💔",
+    "Chand ko dekha to tera chehra yaad aaya,\nPhool ko dekha to tera mehak yaad aayi,\nHar khubsurat cheez mein tu hai,\nPhir kyun teri yaadon ne raaton ko neend uda di 🌙",
+    "Woh log mohabbat ko ibadat kehte hain,\nHum to bas teri hi baat karte hain,\nTujhe paa liya to duniya mil gayi,\nTujhe khone se darte hain 🥺",
+    "Dard ko humne bhi mohabbat ka naam diya,\nTumne to bas ek baar dekha humein,\nHumne to har baar tumhe yaad kiya ❤️",
+    "Zindagi me kuch log milte hain khaas,\nJaise tum mile ho mere paas,\nTumhari hasi ki kimat kya bataun,\nJaise mil gaya ho khazana mere haath ✨",
+];
 
-        const buttons = [
-            { buttonId: '.shayari', buttonText: { displayText: 'Shayari 🪄' }, type: 1 },
-            { buttonId: '.roseday', buttonText: { displayText: '🌹 RoseDay' }, type: 1 }
-        ];
+const quotes = [
+    "The only way to do great work is to love what you do. — Steve Jobs 💫",
+    "In the middle of difficulty lies opportunity. — Albert Einstein",
+    "Be yourself; everyone else is already taken. — Oscar Wilde",
+    "Two roads diverged in a wood, and I took the one less traveled by. — Robert Frost",
+    "The future belongs to those who believe in the beauty of their dreams. — Eleanor Roosevelt",
+    "It does not matter how slowly you go as long as you do not stop. — Confucius",
+    "Everything you've ever wanted is on the other side of fear. — George Addair",
+    "Success is not final, failure is not fatal: it is the courage to continue that counts. — Churchill",
+    "Believe you can and you're halfway there. — Theodore Roosevelt",
+    "The only impossible journey is the one you never begin. — Tony Robbins",
+    "What lies behind us and what lies before us are tiny matters compared to what lies within us. — Emerson",
+    "The best time to plant a tree was 20 years ago. The second best time is now. — Chinese Proverb",
+    "Your time is limited, don't waste it living someone else's life. — Steve Jobs",
+    "The purpose of our lives is to be happy. — Dalai Lama",
+    "Life is what happens when you're busy making other plans. — John Lennon",
+    "Get busy living or get busy dying. — Stephen King",
+    "You miss 100% of the shots you don't take. — Wayne Gretzky",
+    "Whether you think you can or you think you can't, you're right. — Henry Ford",
+    "The best revenge is massive success. — Frank Sinatra",
+    "I have not failed. I've just found 10,000 ways that won't work. — Thomas Edison",
+];
 
-        await ademola.sendMessage(from, { 
-            text: data.result,
-            buttons: buttons,
-            headerType: 1
-        }, {
-            quoted: fakevCard
-        });
-
-    } catch (error) {
-        console.error('Error in shayari command:', error);
-        await reply('❌ Failed to fetch shayari. Please try again later.');
-    }
-});
+const rosedayQuotes = [
+    "🌹 A rose for you, because you deserve all the beauty in this world.",
+    "🌹 Like a rose, your beauty is timeless and your heart is full of grace.",
+    "🌹 Every rose has its thorn, but you make even the thorns worth it.",
+    "🌹 If I could give you one thing, it would be the ability to see yourself through my eyes.",
+    "🌹 You're like a rose in a garden of dandelions — rare, unique, and absolutely stunning.",
+    "🌹 A single rose can be my garden... a single person can be my world. You are that person.",
+    "🌹 Roses are red, violets are blue, but nothing compares to the beauty of you.",
+    "🌹 Like a rose blooming at dawn, your smile brightens up my world.",
+    "🌹 Some people are like roses — they bring color and fragrance into your life. Thank you for being that rose.",
+    "🌹 In a field of roses, you are the one I'd pick every single time.",
+];
 
 // ========== ROSEDAY COMMAND ==========
 ademola({
@@ -230,12 +244,8 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
     try {
-        const res = await fetch(`https://api.princetechn.com/api/fun/roseday?apikey=prince`);
-        if (!res.ok) throw new Error('API error');
-        
-        const json = await res.json();
-        await reply(json.result || '🌹 Happy Rose Day!');
-
+        const quote = rosedayQuotes[Math.floor(Math.random() * rosedayQuotes.length)];
+        await reply(quote);
     } catch (error) {
         console.error('Error in roseday command:', error);
         await reply('❌ Failed to get roseday quote. Please try again later!');
@@ -253,12 +263,8 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
     try {
-        const res = await fetch(`https://shizoapi.onrender.com/api/texts/quotes?apikey=shizo`);
-        if (!res.ok) throw new Error('API error');
-        
-        const json = await res.json();
-        await reply(json.result || '💫 Stay inspired!');
-
+        const q = quotes[Math.floor(Math.random() * quotes.length)];
+        await reply(`💫 *Inspirational Quote*\n\n${q}`);
     } catch (error) {
         console.error('Error in quote command:', error);
         await reply('❌ Failed to get quote. Please try again later!');
@@ -298,29 +304,17 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
     try {
-        const response = await fetch('https://shizoapi.onrender.com/api/memes/cheems?apikey=shizo');
-        const contentType = response.headers.get('content-type');
-        
-        if (contentType?.includes('image')) {
-            const imageBuffer = await response.buffer();
-            
-            const buttons = [
-                { buttonId: '.meme', buttonText: { displayText: '🎭 Another Meme' }, type: 1 },
-                { buttonId: '.joke', buttonText: { displayText: '😄 Joke' }, type: 1 }
-            ];
+        const response = await axios.get('https://meme-api.com/gimme', { timeout: 10000 });
+        const data = response.data;
 
-            await ademola.sendMessage(from, { 
-                image: imageBuffer,
-                caption: "> Here's your cheems meme! 🐕",
-                buttons: buttons,
-                headerType: 1
-            }, {
-                quoted: fakevCard
-            });
-        } else {
-            throw new Error('Invalid response type');
-        }
+        if (!data?.url) throw new Error('Invalid API response');
 
+        await ademola.sendMessage(from, { 
+            image: { url: data.url },
+            caption: `> ${data.title || 'Here\'s your meme!'} 🎭`
+        }, {
+            quoted: fakevCard
+        });
     } catch (error) {
         console.error('Error in meme command:', error);
         await reply('❌ Failed to fetch meme. Please try again later.');

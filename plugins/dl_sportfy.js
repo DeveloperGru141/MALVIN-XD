@@ -1,8 +1,6 @@
 //---------------------------------------------
 //           ADEMOLA-XD SPOTIFY DOWNLOADER
 //---------------------------------------------
-//  ⚠️ DO NOT MODIFY THIS FILE OR REMOVE THIS CREDIT⚠️  
-//---------------------------------------------
 
 const { ademola, fakevCard } = require('../ademola');
 const axios = require('axios');
@@ -18,63 +16,75 @@ ademola({
 }, async (ademola, mek, m, { from, q, reply, sender }) => {
     try {
         if (!q) {
-            return await reply(`🎵 *SPOTIFY DOWNLOADER*\n\n❌ Please provide a song name or artist.\n\n*Usage:*\n.spotify <song/artist>\n\n*Examples:*\n.spotify Shape of You\n.spotify Ed Sheeran\n.spotify Blinding Lights The Weeknd`);
+            return await reply(`🎵 *SPOTIFY DOWNLOADER*\n\n❌ Please provide a song name or artist.\n\n*Examples:*\n.spotify Shape of You\n.spotify Ed Sheeran`);
         }
 
-        const apiUrl = `https://okatsu-rolezapiiz.vercel.app/search/spotify?q=${encodeURIComponent(q)}`;
-        const { data } = await axios.get(apiUrl, { 
-            timeout: 20000, 
-            headers: { 
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' 
-            } 
+        await reply('_🔍 Searching Spotify..._');
+
+        const searchRes = await axios.get(`https://api.fabdl.com/spotify/search?q=${encodeURIComponent(q)}`, {
+            timeout: 15000
         });
 
-        if (!data?.status || !data?.result) {
-            return await reply('❌ No results found for your search. Try a different song or artist.');
+        const tracks = searchRes.data?.result;
+        if (!tracks || tracks.length === 0) {
+            return await reply('❌ No results found. Try a different search.');
         }
 
-        const r = data.result;
-        const audioUrl = r.audio;
-        
-        if (!audioUrl) {
-            return await reply('❌ No downloadable audio found for this track.');
+        const track = tracks[0];
+        const trackId = track.id;
+        const title = track.name || track.title || 'Unknown';
+        const artist = track.artists || 'Unknown';
+
+        await reply(`_🎵 Found: ${title} - ${artist}\n📥 Downloading..._`);
+
+        const dlRes = await axios.get(`https://api.fabdl.com/spotify/mp3-convert-task/${trackId}`, {
+            timeout: 15000
+        });
+
+        const taskId = dlRes.data?.result?.tid || dlRes.data?.tid;
+        if (!taskId) {
+            return await reply('❌ Failed to get download link.');
         }
 
-        // Create song info
-        const songInfo = `
-🎵 *${r.title || r.name || 'Unknown Title'}*
-👤 *Artist:* ${r.artist || 'Unknown'}
-⏱ *Duration:* ${r.duration || 'Unknown'}
-🔗 *Spotify:* ${r.url ? 'Available' : 'Not available'}
+        // Wait for conversion
+        await new Promise(r => setTimeout(r, 3000));
 
-⬇️ *Downloading audio...*
-        `.trim();
+        const convertRes = await axios.get(`https://api.fabdl.com/spotify/mp3-convert-progress/${taskId}`, {
+            timeout: 15000
+        });
 
-        // Send song info with thumbnail if available
-        if (r.thumbnails) {
-            await ademola.sendMessage(from, { 
-                image: { url: r.thumbnails }, 
-                caption: songInfo 
+        const downloadUrl = convertRes.data?.result?.download_url || convertRes.data?.download_url;
+        if (!downloadUrl) {
+            return await reply('❌ Conversion failed. Try again.');
+        }
+
+        const fullUrl = `https://api.fabdl.com${downloadUrl}`;
+        const imageUrl = track.image || track.album_art;
+
+        const songInfo = `🎵 *${title}*\n👤 *Artist:* ${artist}\n\n⬇️ *Downloading audio...*`;
+
+        if (imageUrl) {
+            await ademola.sendMessage(from, {
+                image: { url: imageUrl },
+                caption: songInfo
             }, { quoted: fakevCard });
         } else {
             await reply(songInfo);
         }
 
-        // Send audio file
-        const fileName = `${(r.title || r.name || 'spotify_track').replace(/[\\/:*?"<>|]/g, '_')}.mp3`;
-        
+        const fileName = `${title.replace(/[\\/:*?"<>|]/g, '_')}.mp3`;
+
         await ademola.sendMessage(from, {
-            audio: { url: audioUrl },
+            audio: { url: fullUrl },
             mimetype: 'audio/mpeg',
             fileName: fileName
         }, { quoted: fakevCard });
 
-        // Success confirmation
-        await reply(`✅ *Download Complete!*\n\n📁 ${fileName}\n🎵 Enjoy your music!`);
+        await reply(`✅ *Download Complete!*\n\n📁 ${fileName}\n🎵 Enjoy!`);
 
     } catch (error) {
         console.error('❌ Spotify error:', error);
-        await reply(`❌ Failed to download from Spotify.\n\nError: ${error.message}\n\nPlease try a different search query.`);
+        await reply(`❌ Failed to download from Spotify.\n\nError: ${error.message}\n\nTry a different search or try again later.`);
     }
 });
 
@@ -95,25 +105,16 @@ ademola({
 .spotify <song/artist>
 
 *Examples:*
-• .spotify Shape of You
-• .spotify Ed Sheeran
-• .spotify Blinding Lights The Weeknd
-• .spotify Bad Guy Billie Eilish
+* .spotify Shape of You
+* .spotify Ed Sheeran
+* .spotify Blinding Lights The Weeknd
 
 *Features:*
-✅ High quality audio
-✅ Song metadata
-✅ Album artwork
-✅ Fast downloads
-
-*Note:*
-Searches Spotify's extensive music library.
-Works with song titles, artists, or keywords.
+High quality audio
+Song metadata
+Album artwork
+Fast downloads
     `.trim();
 
     await reply(helpText);
 });
-
-//---------------------------------------------
-//           CODE BY ADEMOLA KING
-//---------------------------------------------

@@ -1,38 +1,28 @@
 const { ademola, fakevCard } = require("../ademola");
 const { loadSettings } = require('../lib/settingsManager');
 const moment = require('moment-timezone');
-const fetch = require('node-fetch');
-const { channelInfo } = require('../lib/messageConfig');
 
 ademola({
-    pattern: "github",
-    alias: ["repo", "git", "source"],
-    desc: "Show GitHub repository information",
+    pattern: "info",
+    alias: ["stats", "about", "botinfo"],
+    desc: "Show bot information and statistics",
     category: "general", 
-    react: "🌟",
+    react: "🤖",
     filename: __filename
 }, async (ademola, mek, m, { from, reply, sender }) => {
     try {
         const currentSettings = loadSettings();
-        
-        const res = await fetch('https://api.github.com/repos/XdKing2/ADEMOLA-XD');
-        if (!res.ok) throw new Error('Failed to fetch repo');
-        const json = await res.json();
-
-        const botName = currentSettings.botName || 'ᴍᴀʟᴠɪɴ xᴅ';
+        const botName = currentSettings.botName || 'ᴀᴅᴇᴍᴏʟᴀ xᴅ';
         const txt = `
 ╭═✦〔 🥇 *${botName}* 〕✦═
-│ ⭐ *Name* : ${json.name}
-│ 🔗 *Repo* : ${json.html_url}
-│ 🍴 *Forks* : ${json.forks_count}
-│ 🌠 *Stars* : ${json.stargazers_count}
-│ 💾 *Size* : ${(json.size / 1024).toFixed(2)} MB
-│ 📅 *Last Updated* : ${moment(json.updated_at).format('DD/MM/YY - HH:mm:ss')}
+│ 🤖 *Name* : ${botName}
+│ 📦 *Version* : ${currentSettings.version || '2.1.1'}
+│ 👑 *Owner* : ${currentSettings.botOwner || 'Ademola'}
+│ 🔧 *Mode* : ${currentSettings.commandMode || 'public'}
+│ 📝 *Description* : ${currentSettings.description || ''}
 │ 
 ╰═
-📥 *ғᴏʀᴋ & sᴛᴀʀ ⭐ ᴛʜᴇ ʀᴇᴘᴏ!*
-
-> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ
+> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ
 `;
 
         const imageUrl = currentSettings.imageUrl;
@@ -42,7 +32,6 @@ ademola({
                 {
                     image: { url: imageUrl },
                     caption: txt,
-                    ...channelInfo 
                 },
                 { quoted: fakevCard }
             );
@@ -51,13 +40,12 @@ ademola({
                 from,
                 {
                     text: txt,
-                    ...channelInfo 
                 },
                 { quoted: fakevCard }
             );
         }
     } catch (error) {
-        console.error('Error in github command:', error);
-        await reply('❌ Error fetching repo info.');
+        console.error('Error in info command:', error);
+        await reply('❌ Error fetching bot info.');
     }
 });

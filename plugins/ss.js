@@ -1,11 +1,5 @@
-//---------------------------------------------
-//           ADEMOLA-XD SCREENSHOT
-//---------------------------------------------
-//  ⚠️ DO NOT MODIFY THIS FILE OR REMOVE THIS CREDIT⚠️  
-//---------------------------------------------
-
 const { ademola, fakevCard } = require('../ademola');
-const fetch = require('node-fetch');
+const axios = require('axios');
 
 ademola({
     pattern: "ss",
@@ -18,38 +12,38 @@ ademola({
 }, async (ademola, mek, m, { from, q, reply, sender }) => {
     try {
         if (!q) {
-            return await reply(`📸 *SCREENSHOT TOOL*\n\nUsage: .ss <url>\n\nExamples:\n.ss https://google.com\n.ss https://github.com\n.ss https://instagram.com`);
+            return await reply(`📸 *SCREENSHOT TOOL*\n\nUsage: .ss <url>\n\nExamples:\n.ss https://google.com\n.ss https://instagram.com`);
         }
 
-        // Validate URL
         if (!q.startsWith('http://') && !q.startsWith('https://')) {
             return await reply('❌ Please provide a valid URL starting with http:// or https://');
         }
 
         await reply(`📸 Taking screenshot of: ${q}`);
 
-        // Call screenshot API
-        const apiUrl = `https://api.siputzx.my.id/api/tools/ssweb?url=${encodeURIComponent(q)}&theme=light&device=desktop`;
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) {
+        const apiUrl = `https://api.nexoracle.com/tools/ssweb?apikey=${process.env.NEXORACLE_API_KEY || ''}&url=${encodeURIComponent(q)}&device=desktop`;
+        const response = await axios.get(apiUrl, {
+            responseType: 'arraybuffer',
+            timeout: 30000
+        });
+
+        if (!response.data) {
             return await reply('❌ Failed to take screenshot. Website might be blocking screenshots.');
         }
 
-        // Get the image buffer
-        const imageBuffer = await response.buffer();
-
-        // Send the screenshot
         await ademola.sendMessage(from, {
-            image: imageBuffer,
+            image: Buffer.from(response.data),
             caption: `📸 ${q}\n\nPowered by Ademola Tech`
         }, {
             quoted: fakevCard
         });
 
-        await reply(`✅ Screenshot taken!`);
-
     } catch (error) {
-        await reply('❌ Failed to take screenshot. Try again later.');
+        console.error('Screenshot error:', error);
+        if (error.response?.status === 403) {
+            await reply('❌ Website denied screenshot access.');
+        } else {
+            await reply('❌ Failed to take screenshot. Try again later.');
+        }
     }
 });

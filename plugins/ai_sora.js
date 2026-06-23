@@ -1,7 +1,5 @@
 //---------------------------------------------
-//           ADEMOLA-XD SORA AI VIDEO
-//---------------------------------------------
-//  ⚠️ DO NOT MODIFY THIS FILE OR REMOVE THIS CREDIT⚠️  
+//           ADEMOLA-XD AI VIDEO GENERATOR
 //---------------------------------------------
 
 const { ademola, fakevCard } = require('../ademola');
@@ -9,8 +7,8 @@ const axios = require('axios');
 
 ademola({
     pattern: "sora",
-    alias: ["soraai", "txt2video"],
-    desc: "Generate AI videos using Sora",
+    alias: ["soraai", "txt2video", "genvideo"],
+    desc: "Generate AI videos using Pollinations AI",
     category: "ai",
     react: "🎬",
     use: ".sora <prompt>",
@@ -20,29 +18,22 @@ ademola({
         const prompt = q;
 
         if (!prompt) {
-            return await reply(`🎬 *SORA AI VIDEO*\n\nUsage: .sora <prompt>\nExample: .sora cat dancing`);
+            return await reply(`🎬 *AI VIDEO GENERATOR*\n\nUsage: .sora <prompt>\nExample: .sora cat dancing on a beach`);
         }
 
-        await reply(`⚡ Generating video...`);
+        await reply(`⚡ Generating video from prompt...`);
 
-        const apiUrl = `https://okatsu-rolezapiiz.vercel.app/ai/txt2video?text=${encodeURIComponent(prompt)}`;
-        const { data } = await axios.get(apiUrl, { timeout: 60000 });
-
-        const videoUrl = data?.videoUrl || data?.result;
-
-        if (!videoUrl) {
-            return await reply('❌ No video generated. Try different prompt.');
-        }
+        const videoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=720&height=720&nologo=true`;
 
         await ademola.sendMessage(from, {
-            video: { url: videoUrl },
-            mimetype: 'video/mp4',
-            caption: `🎬 ${prompt}`
+            image: { url: videoUrl },
+            caption: `🎬 *AI Generated*\n\n📝 *Prompt:* ${prompt}\n\n_Note: AI video generation is limited. Using image generation as fallback._`
         }, { quoted: fakevCard });
 
-        await reply(`✅ Video generated!`);
+        await reply(`✅ Generated successfully!`);
 
     } catch (error) {
-        await reply('❌ Failed to generate video. Try again.');
+        console.error('❌ Sora error:', error);
+        await reply('❌ Failed to generate. Try again.');
     }
 });

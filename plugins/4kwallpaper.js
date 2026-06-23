@@ -130,7 +130,7 @@ ademola({
             });
 
             await ademola.sendMessage(from, {
-                text: `🌆 *${type.toUpperCase()} Wallpapers*\n\n${result.join('\n\n')}\n\n📥 *Download any wallpaper:*\n.4kwallpaper dl [URL]\n\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`,
+                text: `🌆 *${type.toUpperCase()} Wallpapers*\n\n${result.join('\n\n')}\n\n📥 *Download any wallpaper:*\n.4kwallpaper dl [URL]\n\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`,
                 mentions: [sender]
             }, { quoted: fakevCard });
 
@@ -164,7 +164,7 @@ ademola({
             ).join('\n\n');
 
             await ademola.sendMessage(from, {
-                text: `🔍 *Search Results for:* ${query}\n\n${result}\n\n📥 *Download wallpaper:*\n.4kwallpaper dl [URL]\n\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`,
+                text: `🔍 *Search Results for:* ${query}\n\n${result}\n\n📥 *Download wallpaper:*\n.4kwallpaper dl [URL]\n\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`,
                 mentions: [sender]
             }, { quoted: fakevCard });
 
@@ -214,7 +214,7 @@ ademola({
                 });
             }
 
-            msg += `\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`;
+            msg += `\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
             await ademola.sendMessage(from, {
                 text: msg,

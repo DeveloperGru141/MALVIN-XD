@@ -52,7 +52,7 @@ ${listAdmin || '   • No admins found'}
 ▢ *📝 Description:*
 ${groupMetadata.desc?.toString() || '   • No description'}
 │
-└──「 🔖ᴍᴀʟᴠɪɴ xᴅ 」 
+└──「 🔖ᴀᴅᴇᴍᴏʟᴀ xᴅ 」 
 `.trim();
 
         // Send the message with image and mentions

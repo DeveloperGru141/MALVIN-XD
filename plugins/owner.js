@@ -13,7 +13,7 @@ ademola({
     try {
         // Load owner info from settings
         
-        const ownerName = "ᴍᴀʟᴠɪɴ ᴋɪɴɢ";
+        const ownerName = "ᴀᴅᴇᴍᴏʟᴀ ᴋɪɴɢ";
         const ownerNumber = "263780958186";
         
         // Create vCard
@@ -50,7 +50,7 @@ ademola({
 • Business Inquiries
 • Technical Help
 
-> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ🪀`,
+> ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ 🪀`,
             ...channelInfo         
         }, { quoted: fakevCard });
 

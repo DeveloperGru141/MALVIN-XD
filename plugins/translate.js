@@ -87,17 +87,6 @@ async function translateText(text, targetLang) {
             throw new Error('MyMemory failed');
         },
         
-        // API 3: Dreaded API
-        async () => {
-            const response = await fetch(`https://api.dreaded.site/api/translate?text=${encodeURIComponent(text)}&lang=${targetLang}`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data && data.translated) {
-                    return data.translated;
-                }
-            }
-            throw new Error('Dreaded API failed');
-        }
     ];
 
     for (const api of apis) {

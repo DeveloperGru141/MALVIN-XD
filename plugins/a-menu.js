@@ -10,14 +10,8 @@ const toTinyCaps = (text) => {
     return text.toLowerCase().split('').map(c => m[c] || c).join('');
 };
 
-let cachedForks = null;
-const fetchGitHubForks = async () => {
-    if (cachedForks) return cachedForks;
-    try {
-        const res = await axios.get('https://api.github.com/repos/XdKing2/MALVIN-XD', { timeout: 2000 });
-        cachedForks = res.data.forks_count || 'N/A';
-        return cachedForks;
-    } catch { cachedForks = 'N/A'; return 'N/A'; }
+const fetchBotInfo = async () => {
+    return { forks: '0', stars: '0', repo: '' };
 };
 
 function getCurrentPrefix() {
@@ -53,13 +47,73 @@ function buildCategoryMenu(prefix, cat) {
 
 const activeListeners = new Map();
 
+function setupMenuListener(ademola, from, sender, reply, mainMenuText) {
+    if (activeListeners.has(sender)) {
+        const old = activeListeners.get(sender);
+        ademola.ev.off('messages.upsert', old.listener);
+        clearTimeout(old.timeout);
+        activeListeners.delete(sender);
+    }
+
+    const timeout = setTimeout(async () => {
+        if (activeListeners.has(sender)) {
+            const info = activeListeners.get(sender);
+            ademola.ev.off('messages.upsert', info.listener);
+            activeListeners.delete(sender);
+        }
+    }, 300000);
+
+    const currentPrefix = getCurrentPrefix();
+
+    const stripDevice = (jid) => jid ? jid.split(':')[0] + '@s.whatsapp.net' : jid;
+    const normalizedFrom = stripDevice(from);
+
+    const messageListener = async (update) => {
+        try {
+            const info = update?.messages[0];
+            if (!info?.message) return;
+            const msgJid = stripDevice(info.key.remoteJid);
+            if (msgJid !== normalizedFrom) return;
+            const text = info.message.conversation || info.message.extendedTextMessage?.text;
+            if (!text || !/^[0-9]+$/.test(text.trim())) return;
+
+            const input = text.trim();
+
+            if (input === '0') {
+                await reply('🔄 Returning to main menu...');
+                setTimeout(async () => {
+                    await reply(mainMenuText);
+                }, 1000);
+                return;
+            }
+
+            const num = parseInt(input);
+            const cat = numberedCategories.find(c => c.num === num);
+            if (cat) {
+                await reply(buildCategoryMenu(currentPrefix, cat));
+                try {
+                    if (info?.key?.id) {
+                        await ademola.sendMessage(from, { react: { text: "✅", key: info.key } });
+                    }
+                } catch {}
+                return;
+            }
+
+        } catch (e) {
+            console.error('Menu reply error:', e);
+        }
+    };
+
+    ademola.ev.on('messages.upsert', messageListener);
+    activeListeners.set(sender, { listener: messageListener, timeout });
+}
+
 async function buildMainMenu() {
     const currentSettings = loadSettings();
     const totalCommands = commands.filter(cmd => cmd.category && cmd.pattern && !cmd.dontAdd).length;
     const timezone = currentSettings.timezone || settings.timezone || 'Africa/Harare';
     const t = moment().tz(timezone);
     const currentPrefix = getCurrentPrefix();
-    const forks = await fetchGitHubForks();
 
     return `╭─ 🤖 ${toTinyCaps(currentSettings.botName || settings.botName || 'ademola-xd')} ─╮
 │ 👤 Owner: ${toTinyCaps(currentSettings.botOwner || settings.botOwner || 'ademola')}
@@ -67,7 +121,6 @@ async function buildMainMenu() {
 │ 🌍 Mode: ${toTinyCaps(currentSettings.commandMode || 'public')}
 │ ✒️ Prefix: [ ${currentPrefix} ]  🧩 Commands: ${totalCommands}
 │ 🚀 Version: ${currentSettings.version || 'latest'}
-│ 👥 Forks: ${forks}
 ╰──────────────────╯
 
 📁 CATEGORIES
@@ -88,66 +141,12 @@ ademola({
 }, async (ademola, mek, m, { from, reply, prefix, sender }) => {
     try {
         const mainMenu = await buildMainMenu();
-        const currentPrefix = getCurrentPrefix();
-
-        if (activeListeners.has(sender)) {
-            const old = activeListeners.get(sender);
-            ademola.ev.off('messages.upsert', old.listener);
-            clearTimeout(old.timeout);
-            activeListeners.delete(sender);
-        }
-
         await reply(mainMenu);
-
-        const timeout = setTimeout(async () => {
-            if (activeListeners.has(sender)) {
-                const info = activeListeners.get(sender);
-                ademola.ev.off('messages.upsert', info.listener);
-                activeListeners.delete(sender);
-            }
-        }, 300000);
-
-        const messageListener = async (update) => {
-            try {
-                const info = update?.messages[0];
-                if (!info?.message || info.key.remoteJid !== from) return;
-                const text = info.message.conversation || info.message.extendedTextMessage?.text;
-                if (!text || !/^[0-9]+$/.test(text.trim())) return;
-
-                const input = text.trim();
-
-                if (input === '0') {
-                    await reply('🔄 Returning to main menu...');
-                    setTimeout(async () => {
-                        await reply(mainMenu);
-                    }, 1000);
-                    return;
-                }
-
-                const num = parseInt(input);
-                const cat = numberedCategories.find(c => c.num === num);
-                if (cat) {
-                    await reply(buildCategoryMenu(currentPrefix, cat));
-                    try {
-                        if (info?.key?.id) {
-                            await ademola.sendMessage(from, { react: { text: "✅", key: info.key } });
-                        }
-                    } catch {}
-                    return;
-                }
-
-            } catch (e) {
-                console.error('Menu reply error:', e);
-            }
-        };
-
-        ademola.ev.on('messages.upsert', messageListener);
-        activeListeners.set(sender, { listener: messageListener, timeout });
-
+        setupMenuListener(ademola, from, sender, reply, mainMenu);
     } catch (error) {
         console.error('Menu error:', error);
         await reply('❌ Failed to load menu. Please try again.');
     }
 });
 
-module.exports = { buildMainMenu, buildCategoryMenu };
+module.exports = { buildMainMenu, buildCategoryMenu, setupMenuListener };

@@ -17,7 +17,6 @@ const settings = {
   maxStoreMessages: 20,
   storeWriteInterval: 10000,
   description: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ xᴅ",
-  updateZipUrl: "https://github.com/XdKing2/MALVIN-XD/archive/refs/heads/main.zip",
   imageUrl: "",
   MENU_AUDIO_URL: "https://files.catbox.moe/jrhodx.mp3",
   ALIVE_AUDIO_URL: "https://files.catbox.moe/dy9z54.mp3",

@@ -1,5 +1,6 @@
 const { ademola, fakevCard } = require("../ademola");
 const axios = require('axios');
+const ytSearch = require('yt-search');
 
 ademola({
     pattern: "wastalk",
@@ -47,7 +48,7 @@ ademola({
                        `🆔 *Channel ID:* ${newsletterJid || 'N/A'}\n\n` +
                        `🔗 *Link:* ${link}\n\n` +
                        `👤 *Requested by:* @${sender.split('@')[0]}\n` +
-                       `> © Powered by Ademola King`;
+                       `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
         await ademola.sendMessage(from, {
             image: Buffer.from(imageRes.data),
@@ -89,36 +90,32 @@ ademola({
             return await reply(`📱 *TikTok Stalk*\n\nUsage: .tiktokstalk <username>\nExample: .tiktokstalk mrbeast`);
         }
 
-        const apiUrl = `https://api.siputzx.my.id/api/stalk/tiktok?username=${encodeURIComponent(q)}`;
+        const apiUrl = `https://api.nexoracle.com/stalking/tiktok?apikey=${process.env.NEXORACLE_API_KEY || ''}&username=${encodeURIComponent(q)}`;
         const { data } = await axios.get(apiUrl);
 
-        if (!data.status) {
+        if (!data.status || !data.result) {
             return await reply('❌ TikTok user not found. Please check the username and try again.');
         }
 
-        const user = data.data.user;
-        const stats = data.data.stats;
+        const user = data.result;
 
         const profileInfo = `📱 *TikTok Profile*\n\n` +
-                          `👤 *Username:* @${user.uniqueId}\n` +
-                          `📛 *Nickname:* ${user.nickname}\n` +
+                          `👤 *Username:* @${user.username || user.uniqueId}\n` +
+                          `📛 *Nickname:* ${user.nickname || user.nick}\n` +
                           `✅ *Verified:* ${user.verified ? "Yes ✅" : "No ❌"}\n` +
-                          `📍 *Region:* ${user.region}\n` +
-                          `📝 *Bio:* ${user.signature || "No bio available"}\n` +
-                          `🔗 *Bio Link:* ${user.bioLink?.link || "No link available"}\n\n` +
+                          `📍 *Region:* ${user.region || 'N/A'}\n` +
+                          `📝 *Bio:* ${user.bio || user.description || 'No bio available'}\n\n` +
                           `📊 *Statistics:*\n` +
-                          `👥 *Followers:* ${stats.followerCount.toLocaleString()}\n` +
-                          `👤 *Following:* ${stats.followingCount.toLocaleString()}\n` +
-                          `❤️ *Likes:* ${stats.heartCount.toLocaleString()}\n` +
-                          `🎥 *Videos:* ${stats.videoCount.toLocaleString()}\n\n` +
-                          `📅 *Account Created:* ${new Date(user.createTime * 1000).toLocaleDateString()}\n` +
-                          `🔒 *Private Account:* ${user.privateAccount ? "Yes 🔒" : "No 🌍"}\n\n` +
-                          `🔗 *Profile URL:* https://www.tiktok.com/@${user.uniqueId}\n\n` +
-                          `👤 *Requested by:* @${sender.split('@')[0]}\n` +
-                          `> © Powered by Ademola King`;
+                          `👥 *Followers:* ${(user.followers || user.followerCount || 0).toLocaleString()}\n` +
+                          `👤 *Following:* ${(user.following || user.followingCount || 0).toLocaleString()}\n` +
+                          `❤️ *Likes:* ${(user.likes || user.heartCount || 0).toLocaleString()}\n` +
+                          `🎥 *Videos:* ${(user.videoCount || user.videos || 0).toLocaleString()}\n\n` +
+                          `🔗 *Profile URL:* https://www.tiktok.com/@${user.username || user.uniqueId}\n\n` +
+                       `👤 *Requested by:* @${sender.split('@')[0]}\n` +
+                       `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
         await ademola.sendMessage(from, {
-            image: { url: user.avatarLarger },
+            image: { url: user.avatar || user.avatarLarger },
             caption: profileInfo,
             mentions: [sender]
         }, {
@@ -176,7 +173,7 @@ ademola({
                        `📅 *Joined:* ${user.created}\n` +
                        `🔗 *Profile:* ${user.url}\n\n` +
                        `👤 *Requested by:* @${sender.split('@')[0]}\n` +
-                       `> © Powered by Ademola King`;
+                       `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
         await ademola.sendMessage(from, {
             image: { url: user.avatar },
@@ -214,40 +211,22 @@ ademola({
             return await reply(`📺 *YouTube Stalk*\n\nUsage: .ytstalk <username>\nExample: .ytstalk ademolatech2`);
         }
 
-        const response = await axios.get(`https://api.siputzx.my.id/api/stalk/youtube?username=${encodeURIComponent(q)}`);
-        const { status, data } = response.data;
+        const searchResults = await ytSearch(q);
+        const channel = searchResults?.channels?.[0];
 
-        if (!status || !data) {
-            return await reply('❌ YouTube channel not found. Please check the username.');
+        if (!channel) {
+            return await reply('❌ YouTube channel not found. Please check the name.');
         }
 
-        const {
-            channel: {
-                username: ytUsername,
-                subscriberCount,
-                videoCount,
-                avatarUrl,
-                channelUrl,
-                description,
-            },
-            latest_videos,
-        } = data;
-
-        // Format the YouTube channel information
         const ytMessage = `📺 *YouTube Channel*\n\n` +
-                         `👤 *Channel:* ${ytUsername}\n` +
-                         `👥 *Subscribers:* ${subscriberCount}\n` +
-                         `🎥 *Total Videos:* ${videoCount}\n` +
-                         `📝 *Description:* ${description || "N/A"}\n` +
-                         `🔗 *Channel URL:* ${channelUrl}\n\n` +
-                         `🎬 *Latest Videos:*\n` +
-                         latest_videos.slice(0, 3).map((video, index) => 
-                             `${index + 1}. *${video.title}*\n   ▶️ *Views:* ${video.viewCount}\n   ⏱️ *Duration:* ${video.duration}\n   📅 *Published:* ${video.publishedTime}`
-                         ).join('\n\n') + `\n\n👤 *Requested by:* @${sender.split('@')[0]}\n` +
-                         `> © Powered by Ademola King`;
+                         `👤 *Channel:* ${channel.name}\n` +
+                         `👥 *Subscribers:* ${channel.subscribers || 0}\n` +
+                         `🎥 *Total Videos:* ${channel.videoCount || 'N/A'}\n` +
+                         `🔗 *Channel URL:* ${channel.url}\n\n` +
+                         `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
         await ademola.sendMessage(from, {
-            image: { url: avatarUrl },
+            image: { url: channel.image },
             caption: ytMessage,
             mentions: [sender]
         }, {
@@ -256,68 +235,7 @@ ademola({
 
     } catch (error) {
         console.error('YouTube Stalk error:', error);
-        
-        if (error.response?.status === 404) {
-            await reply('❌ YouTube channel not found. Please check the username.');
-        } else if (error.code === 'ENOTFOUND') {
-            await reply('❌ Network error. Please check your internet connection.');
-        } else {
-            await reply('❌ Failed to fetch YouTube channel information. Please try again later.');
-        }
+        await reply('❌ Failed to fetch YouTube channel information. Please try again later.');
     }
 });
 
-ademola({
-    pattern: "githubstalk",
-    alias: ["gstalk", "gitstalk", "gits"],
-    desc: "Fetch detailed GitHub user profile",
-    category: "stalk",
-    react: "🖥️",
-    use: ".githubstalk <username>",
-    filename: __filename,
-}, async (ademola, mek, m, { from, q, reply, sender }) => {
-    try {
-        if (!q) {
-            return await reply(`🖥️ *GitHub Stalk*\n\nUsage: .githubstalk <username>\nExample: .githubstalk XdKing2`);
-        }
-
-        const username = q.trim();
-        const apiUrl = `https://api.github.com/users/${username}`;
-        const response = await axios.get(apiUrl);
-        const data = response.data;
-
-        let userInfo = `🖥️ *GitHub Profile*\n\n` +
-                      `👤 *Name:* ${data.name || data.login}\n` +
-                      `🔗 *Profile:* ${data.html_url}\n` +
-                      `📝 *Bio:* ${data.bio || 'Not available'}\n` +
-                      `🏙️ *Location:* ${data.location || 'Unknown'}\n` +
-                      `🏢 *Company:* ${data.company || 'Not specified'}\n` +
-                      `📊 *Public Repos:* ${data.public_repos}\n` +
-                      `👥 *Followers:* ${data.followers} | *Following:* ${data.following}\n` +
-                      `📅 *Account Created:* ${new Date(data.created_at).toDateString()}\n` +
-                      `✍️ *Public Gists:* ${data.public_gists}\n\n` +
-                      `👤 *Requested by:* @${sender.split('@')[0]}\n` +
-                      `> © Powered by Ademola King`;
-
-        await ademola.sendMessage(from, {
-            image: { url: data.avatar_url },
-            caption: userInfo,
-            mentions: [sender]
-        }, {
-            quoted: fakevCard
-        });
-
-    } catch (error) {
-        console.error('GitHub Stalk error:', error);
-        
-        if (error.response?.status === 404) {
-            await reply(`❌ GitHub user "${q}" not found. Please check the username and try again.`);
-        } else if (error.response?.status === 403) {
-            await reply('❌ GitHub API rate limit exceeded. Please try again in a few minutes.');
-        } else if (error.code === 'ENOTFOUND') {
-            await reply('❌ Network error. Please check your internet connection.');
-        } else {
-            await reply(`❌ Failed to fetch GitHub profile: ${error.message}`);
-        }
-    }
-});

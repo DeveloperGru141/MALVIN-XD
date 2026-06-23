@@ -179,7 +179,7 @@ _⏳ *Downloading video...*_
 📁 *Format:* MP4 (HD)
 🚀 *Ready to watch!*
 
-> ✨ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ
+> ✨ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ
         `.trim();
 
         await ademola.sendMessage(from, {
@@ -234,7 +234,7 @@ ademola({
 🚫 No live streams
 📱 Mobile optimized
 
-> 🚀 ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ
+> 🚀 ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ
     `.trim();
 
     await reply(helpText);

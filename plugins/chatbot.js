@@ -79,31 +79,35 @@ Context: ${userContext.messages.slice(-2).join(' | ')}
 User: ${userMessage}
 Assistant:`.trim();
 
-        console.log('🔄 Calling AI API with simplified prompt...');
-        
-        // Use the same API as your GPT command
-        const response = await axios.get(`https://ademola-api.vercel.app/ai/openai?text=${encodeURIComponent(simplePrompt)}`, {
-            timeout: 15000
-        });
-        
-        console.log('📥 API Response received');
-        
-        if (response.data && response.data.result) {
-            let answer = response.data.result;
-            
-            // Basic cleanup
-            answer = answer.trim()
-                .replace(/^(AI|Assistant|ChatGPT):\s*/i, '')
-                .replace(/["']/g, '')
-                .replace(/\n\s*\n/g, '\n');
-            
-            // Ensure response isn't empty
-            if (answer && answer.length > 0) {
-                return answer;
+        console.log('🔄 Calling AI API...');
+
+        const models = ['openai', 'mistral'];
+        let lastErr;
+
+        for (const model of models) {
+            try {
+                const response = await axios.get(`https://text.pollinations.ai/${encodeURIComponent(simplePrompt)}?model=${model}&system=${encodeURIComponent('You are a friendly casual AI assistant. Keep responses short, conversational, and use emojis naturally.')}`, {
+                    timeout: 15000
+                });
+
+                if (response.data) {
+                    let answer = typeof response.data === 'string' ? response.data : String(response.data);
+                    answer = answer.trim()
+                        .replace(/["']/g, '')
+                        .replace(/\n\s*\n/g, '\n');
+                    if (answer && answer.length > 0) {
+                        console.log(`📥 API response received (model: ${model})`);
+                        return answer;
+                    }
+                }
+                lastErr = new Error('Empty response');
+            } catch (e) {
+                lastErr = e;
+                continue;
             }
         }
         
-        throw new Error('Invalid API response format');
+        throw lastErr || new Error('All models failed');
         
     } catch (error) {
         console.error('❌ AI API Error:', error.message);

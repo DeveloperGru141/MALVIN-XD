@@ -123,7 +123,7 @@ ademola({
                     document: Buffer.from(fileResponse.data),
                     fileName: `${downloadData.appname}.apk`,
                     mimetype: 'application/vnd.android.package-archive',
-                    caption: `✅ *${downloadData.appname}* downloaded successfully!\n\n⚠️ *Note:* Install at your own risk. Always scan APK files before installation.\n\n👤 *Downloaded by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`,
+                    caption: `✅ *${downloadData.appname}* downloaded successfully!\n\n⚠️ *Note:* Install at your own risk. Always scan APK files before installation.\n\n👤 *Downloaded by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`,
                     mentions: [sender]
                 }, { quoted: fakevCard });
 
@@ -162,7 +162,7 @@ ademola({
                            `💡 *To download:* Reply with .apk <number>\n` +
                            `*Example:* .apk 1\n\n` +
                            `👤 *Requested by:* @${sender.split('@')[0]}\n\n` +
-                           `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴍᴀʟᴠɪɴ ᴛᴇᴄʜ`;
+                           `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
             await ademola.sendMessage(from, {
                 text: caption,

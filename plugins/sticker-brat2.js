@@ -77,11 +77,22 @@ ademola({
         // Send processing message
         await reply('😈 Creating your Brat sticker...');
 
-        const url = `https://api.privatezia.biz.id/api/generator/brat?text=${encodeURIComponent(q)}`;
-        const res = await fetch(url);
-        
-        if (!res.ok) throw new Error(`API error! status: ${res.status}`);
-        const buffer = await res.buffer();
+        let buffer;
+
+        try {
+            const res = await fetch(`https://api.privatezia.biz.id/api/generator/brat?text=${encodeURIComponent(q)}`);
+            if (res.ok) {
+                buffer = await res.buffer();
+            } else {
+                throw new Error('Primary API failed');
+            }
+        } catch {
+            const pollRes = await axios.get(`https://image.pollinations.ai/prompt/brat%20style%20text%20%22${encodeURIComponent(q)}%22%20graffiti%20street%20art?width=512&height=512&nologo=true`, {
+                responseType: 'arraybuffer',
+                timeout: 30000
+            });
+            buffer = Buffer.from(pollRes.data);
+        }
 
         const stiker = await sticker5(buffer, null, 'ademola xd', 'ademola');
 

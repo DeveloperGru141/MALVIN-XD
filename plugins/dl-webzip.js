@@ -1,5 +1,6 @@
 const { ademola, fakevCard } = require("../ademola");
 const axios = require('axios');
+const { loadSettings } = require('../lib/settingsManager');
 
 ademola({
     pattern: "webzip",
@@ -15,29 +16,25 @@ ademola({
             return await reply(`📦 *Website Archiver*\n\nUsage: .webzip <url>\nExample: .webzip https://example.com`);
         }
 
-        // Validate URL format
         if (!q.match(/^https?:\/\//)) {
             return await reply('❌ Invalid URL. Please include http:// or https://');
         }
 
-        // Send processing reaction
         await ademola.sendMessage(from, { react: { text: '⏳', key: mek.key } });
 
-        const apiUrl = `https://api.giftedtech.web.id/api/tools/web2zip?apikey=gifted&url=${encodeURIComponent(q)}`;
+        const apiUrl = `https://api.nexoracle.com/tools/web2zip?apikey=${process.env.NEXORACLE_API_KEY || ''}&url=${encodeURIComponent(q)}`;
         const response = await axios.get(apiUrl, { 
             timeout: 30000 
         });
 
-        if (!response.data?.success || !response.data?.result?.download_url) {
+        if (!response.data?.status || !response.data?.result?.download_url) {
             return await reply('❌ Failed to archive website. The site may be restricted, too large, or unavailable.');
         }
 
         const { siteUrl, copiedFilesAmount, download_url } = response.data.result;
 
-        // Send processing message
         await reply('🔄 Archiving website content...');
 
-        // Download the ZIP file
         const zipResponse = await axios.get(download_url, {
             responseType: 'arraybuffer',
             timeout: 60000
@@ -77,8 +74,6 @@ ademola({
 
     } catch (error) {
         console.error('Webzip error:', error);
-        
-        // Remove loading reaction
         await ademola.sendMessage(from, { react: { text: '❌', key: mek.key } });
         
         if (error.code === 'ECONNABORTED') {
@@ -87,8 +82,6 @@ ademola({
             await reply('❌ Website denied access. The site may have anti-scraping protection.');
         } else if (error.response?.status === 404) {
             await reply('❌ Website not found. Please check the URL and try again.');
-        } else if (error.message?.includes('ENOTFOUND')) {
-            await reply('❌ Cannot resolve website. Please check the URL and your internet connection.');
         } else {
             await reply('❌ Failed to archive website. The site may be too large or unavailable.');
         }

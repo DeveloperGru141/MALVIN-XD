@@ -48,7 +48,7 @@ ademola({
 
         // Build menu
         let menu = `
-╭─✦「 🤖 ${settings.BOT_NAME || 'ᴍᴀʟᴠɪɴ xᴅ'} 」✦─╮
+╭─✦「 🤖 ${settings.BOT_NAME || 'ᴀᴅᴇᴍᴏʟᴀ xᴅ'} 」✦─╮
 │ 👤 ᴜsᴇʀ: @${sender.split('@')[0]}
 │ ⏰ ᴛɪᴍᴇ: ${time}
 │ 📅 ᴅᴀᴛᴇ: ${date} 
