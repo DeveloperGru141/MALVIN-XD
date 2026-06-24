@@ -1,7 +1,7 @@
 const { ademola, fakevCard } = require("../ademola");
 const axios = require('axios');
 
-const NEXORACLE_KEY = process.env.NEXORACLE_API_KEY || 'e276311658d835109c';
+const NEXORACLE_KEY = process.env.NEXORACLE_API_KEY;
 
 const MODELS = {
     flux: { label: 'Flux', desc: 'Top-tier general (Black Forest Labs)', pollinations: true },

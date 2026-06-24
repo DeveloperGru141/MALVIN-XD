@@ -1,4 +1,3 @@
-// Ademola🤴 
 require('./settings')
 const { Boom } = require('@hapi/boom')
 const fs = require('fs')
@@ -8,7 +7,7 @@ const path = require('path')
 const axios = require('axios')
 const PhoneNumber = require('awesome-phonenumber')
 const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = require('./lib/exif')
-const { smsg, isUrl, generateMessageTag, getBuffer, getSizeMedia, sleep, reSize } = require('./lib/myfunc')
+const { smsg, isUrl, getBuffer, getSizeMedia, sleep, reSize } = require('./lib/myfunc')
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -33,22 +32,42 @@ const { PHONENUMBER_MCC } = require('@whiskeysockets/baileys/lib/Utils/generics'
 const { rmSync, existsSync } = require('fs')
 const { join } = require('path')
 
-// ========== TEMP CLEANUP SYSTEM ==========
+const { loadSettings } = require('./lib/settingsManager');
+const { ademola, commands, setSocket } = require('./ademola')
+const { channelInfo } = require('./lib/messageConfig')
+const store = require('./lib/lightweight_store')
+const isAdmin = require('./lib/isAdmin');
+const { isBanned } = require('./lib/isBanned');
+const isOwnerOrSudo = require('./lib/isOwner');
+const { getPrefix, setPrefix, resetPrefix } = require('./lib/prefix');
+const { AntiDelete, storeMessage: storeAntideleteMessage, loadAntideleteConfig } = require('./plugins/antidelete');
+const { Antilink } = require('./lib/antilink');
+const { handleStatusUpdate } = require('./plugins/autostatus');
+const { isAutotypingEnabled } = require('./plugins/autotyping');
+const { isAutoreadEnabled } = require('./plugins/autoread');
+const { handleChatbotResponse } = require('./plugins/chatbot');
+const { handleMentionDetection } = require('./plugins/mention');
+const { addCommandReaction } = require('./lib/reactions');
+const { handleAfkReturn } = require('./plugins/afk');
+const { handleStickerReply } = require('./plugins/stickerreply');
+const { getConfig: getAutoReplyConfig } = require('./plugins/autoreply');
+const { handleTagDetection } = require('./plugins/antitag');
+const { addActivity: addAutoStatusActivity } = require('./plugins/autostatus');
+const { handleJoinEvent } = require('./plugins/welcome');
+const { handleLeaveEvent } = require('./plugins/goodbye');
+
 const tempDir = path.join(__dirname, 'temp');
 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-// Redirect temp storage away from system /tmp
 process.env.TMPDIR = tempDir;
 process.env.TEMP = tempDir;
 process.env.TMP = tempDir;
 
-// Auto-cleaner every hour
 setInterval(() => {
     fs.readdir(tempDir, (err, files) => {
         if (err) return;
         let cleaned = 0;
         const now = Date.now();
-        
         files.forEach(file => {
             const filePath = path.join(tempDir, file);
             fs.stat(filePath, (err, stats) => {
@@ -60,7 +79,6 @@ setInterval(() => {
                 }
             });
         });
-        
         if (cleaned > 0) {
             console.log(`🧹 Cleaned ${cleaned} temp files`);
         }
@@ -69,9 +87,6 @@ setInterval(() => {
 
 console.log('🔧 Temp cleanup system initialized');
 
-// ========= TINYCAP SETTING ================
-
-// Tiny caps mapping
 const tinyCapsMap = {
     a: 'ᴀ', b: 'ʙ', c: 'ᴄ', d: 'ᴅ', e: 'ᴇ', f: 'ғ', g: 'ɢ', h: 'ʜ', i: 'ɪ',
     j: 'ᴊ', k: 'ᴋ', l: 'ʟ', m: 'ᴍ', n: 'ɴ', o: 'ᴏ', p: 'ᴘ', q: 'q', r: 'ʀ',
@@ -82,46 +97,15 @@ const toTinyCaps = (str) => {
     return str.split('').map((char) => tinyCapsMap[char.toLowerCase()] || char).join('');
 };
 
-// ========== IMPORT SETTINGS MANAGER ==========
-const { loadSettings } = require('./lib/settingsManager');
-
-// Import Ademola XD framework
-const { ademola, commands, setSocket } = require('./ademola')
-// ========== CHANNEL INFO CONFIG =======
-const { channelInfo } = require('./lib/messageConfig')
-// Import lightweight store
-const store = require('./lib/lightweight_store')
-
-// ========== IMPORT FROM LIB FILES ==========
-const isAdmin = require('./lib/isAdmin');
-const { isBanned } = require('./lib/isBanned');
-const isOwnerOrSudo = require('./lib/isOwner');
-
-// ========== IMPORT PREFIX SYSTEM ==========
-const { getPrefix, setPrefix, resetPrefix } = require('./lib/prefix');
-
-// ========== IMPORT NEW ANTIDELETE ==========
-const { AntiDelete, storeMessage: storeAntideleteMessage, loadAntideleteConfig } = require('./plugins/antidelete');
-
-// ========== IMPORT ANTILINK SYSTEM ==========
-const { Antilink } = require('./lib/antilink');
-
-// ========== IMPORT AUTO STATUS SYSTEM ==========
-const { handleStatusUpdate } = require('./plugins/autostatus');
-
-// Initialize store
 store.readFromFile()
 const settings = require('./settings')
 setInterval(() => store.writeToFile(), settings.storeWriteInterval || 10000)
 
-// ========== FIX: INITIALIZE GLOBAL.SETTINGS BEFORE USE ==========
-// Initialize global.settings if it doesn't exist
 if (!global.settings) {
     global.settings = {};
 }
 console.log('🔧 Global settings initialized');
 
-// ========== ACTIVITY LOG (accessible to plugins) ==========
 const activityLog = [];
 const MAX_ACTIVITY = 50;
 function pushActivity(type, detail) {
@@ -131,22 +115,13 @@ function pushActivity(type, detail) {
 global.getActivityLog = () => activityLog;
 global.pushActivity = pushActivity;
 
-// ========== LOAD PERSISTENT SETTINGS ==========
 const persistentSettings = loadSettings();
-// Update global settings with persistent values - WITH SAFETY CHECK
 if (persistentSettings && typeof persistentSettings === 'object') {
     Object.assign(global.settings, persistentSettings);
-   // console.log('⚙️ Persistent settings loaded');
 } else {
     console.log('⚠️ No persistent settings found, using defaults');
 }
-// ========== PREFIX HANDLING ==========
-// Use dynamic prefix from prefix module
-//const PREFIX = getPrefix();
 
-// ========== ESSENTIAL FUNCTIONS ==========
-
-// Message count functions - async batched to avoid blocking hot path
 let msgCountData = null;
 let msgCountDirty = false;
 let msgCountTimer = null;
@@ -166,7 +141,7 @@ function flushMessageCount() {
     try {
         fs.writeFileSync('./data/messageCount.json', JSON.stringify(msgCountData, null, 2));
         msgCountDirty = false;
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
 }
 
 function scheduleMessageCountFlush() {
@@ -190,6 +165,31 @@ process.on('exit', flushMessageCount);
 process.on('SIGINT', () => { flushMessageCount(); process.exit(0); });
 process.on('SIGTERM', () => { flushMessageCount(); process.exit(0); });
 
+const commandCooldowns = new Map();
+const CALL_COOLDOWN_MS = 1200;
+const MSG_DEDUP_SET = new Set();
+const MSG_DEDUP_TTL = 3000;
+
+function isDuplicateMessage(msgId) {
+    if (MSG_DEDUP_SET.has(msgId)) return true;
+    MSG_DEDUP_SET.add(msgId);
+    setTimeout(() => MSG_DEDUP_SET.delete(msgId), MSG_DEDUP_TTL);
+    return false;
+}
+
+function enforceCommandCooldown(senderId) {
+    const now = Date.now();
+    const last = commandCooldowns.get(senderId);
+    if (last && now - last < CALL_COOLDOWN_MS) return true;
+    commandCooldowns.set(senderId, now);
+    return false;
+}
+
+function sanitizeInput(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').trim();
+}
+
 function topMembers(sock, chatId, isGroup) {
     try {
         if (!isGroup) return;
@@ -200,33 +200,31 @@ function topMembers(sock, chatId, isGroup) {
             sock.sendMessage(chatId, { text: 'No message data available for this group.' });
             return;
         }
-        
+
         const sorted = Object.entries(chatData)
-            .sort(([,a], [,b]) => b - a)
+            .sort(([, a], [, b]) => b - a)
             .slice(0, 10);
-        
+
         let text = '🏆 *TOP MEMBERS*\n\n';
         sorted.forEach(([jid, count], index) => {
             text += `${index + 1}. @${jid.split('@')[0]} - ${count} messages\n`;
         });
-        
-        sock.sendMessage(chatId, { 
-            text, 
-            mentions: sorted.map(([jid]) => jid) 
+
+        sock.sendMessage(chatId, {
+            text,
+            mentions: sorted.map(([jid]) => jid)
         });
     } catch (error) {
-        //console.error('Error in topMembers:', error);
+        console.error('Error in topMembers:', error);
     }
 }
 
-// Game state management
 const gameStates = {
     tictactoe: new Map(),
     hangman: new Map(),
     trivia: new Map()
 };
 
-// Anti-call state
 function readAnticallState() {
     try {
         return JSON.parse(fs.readFileSync('./data/anticall.json', 'utf-8'));
@@ -235,7 +233,6 @@ function readAnticallState() {
     }
 }
 
-// PM blocker state
 function readPmBlockerState() {
     try {
         return JSON.parse(fs.readFileSync('./data/pmblocker.json', 'utf-8'));
@@ -244,124 +241,83 @@ function readPmBlockerState() {
     }
 }
 
-// ========== ADDITIONAL ESSENTIAL FUNCTIONS ==========
-
-// Autotyping functionality
 async function handleAutotypingForMessage(sock, chatId, userMessage) {
     try {
-        const { isAutotypingEnabled } = require('./plugins/autotyping');
         if (await isAutotypingEnabled(chatId)) {
             await sock.sendPresenceUpdate('composing', chatId);
             await new Promise(resolve => setTimeout(resolve, 2000));
             await sock.sendPresenceUpdate('paused', chatId);
         }
     } catch (error) {
-        //console.error('Error in autotyping:', error);
+        console.error('Error in autotyping:', error);
     }
 }
 
 async function showTypingAfterCommand(sock, chatId) {
     try {
-        const { isAutotypingEnabled } = require('./plugins/autotyping');
         if (await isAutotypingEnabled(chatId)) {
             await sock.sendPresenceUpdate('composing', chatId);
             await new Promise(resolve => setTimeout(resolve, 1000));
             await sock.sendPresenceUpdate('paused', chatId);
         }
     } catch (error) {
-        //console.error('Error in post-command typing:', error);
+        console.error('Error in post-command typing:', error);
     }
 }
 
-// Autoread functionality
 async function handleAutoread(sock, message) {
     try {
-        const { isAutoreadEnabled } = require('./plugins/autoread');
         const chatId = message.key.remoteJid;
         if (await isAutoreadEnabled(chatId)) {
             await sock.readMessages([message.key]);
         }
     } catch (error) {
-      //  console.error('Error in autoread:', error);
+        console.error('Error in autoread:', error);
     }
 }
-
-// Chatbot response
-async function handleChatbotResponse(sock, chatId, message, userMessage, senderId) {
-    try {
-        const { handleChatbotResponse } = require('./plugins/chatbot');
-        await handleChatbotResponse(sock, chatId, message, userMessage, senderId);
-    } catch (error) {
-       // console.error('Error in chatbot response:', error);
-    }
-}
-
-// Mention detection
-async function handleMentionDetection(sock, chatId, message) {
-    try {
-        const { handleMentionDetection } = require('./plugins/mention');
-        await handleMentionDetection(sock, chatId, message);
-    } catch (error) {
-        console.error('Error in mention detection:', error);
-    }
-}
-
-// Command reactions
-async function addCommandReaction(sock, message) {
-    try {
-        const { addCommandReaction } = require('./lib/reactions');
-        await addCommandReaction(sock, message);
-    } catch (error) {
-        console.error('Error adding command reaction:', error);
-    }
-}
-
-// ========== GLOBAL SETTINGS ==========
 
 global.botname = "🤖 ADEMOLA XD 🔥";
 global.themeemoji = "👌";
 
-// ========== BOT CONFIGURATION ==========
 const SESSION_DIR = path.join(__dirname, 'session');
 const CREDS_PATH = path.join(SESSION_DIR, 'creds.json');
-const NEWSLETTER_IDS =[
+const NEWSLETTER_IDS = [
     "120363402507750390@newsletter",
     "120363405304938881@newsletter",
-    "120363420989526190@newsletter", 
+    "120363420989526190@newsletter",
     "120363419136706156@newsletter"
 ];
 
 const newsletterJids = [
     "120363402507750390@newsletter",
     "120363405304938881@newsletter",
-    "120363420989526190@newsletter", 
+    "120363420989526190@newsletter",
     "120363419136706156@newsletter"
 ];
-const emojis = ["🎉", "🪀", "🎀","💫"];
+const emojis = ["🎉", "🪀", "🎀", "💫"];
 
 const useMobile = process.argv.includes("--mobile")
 const useQr = process.argv.includes("--qr") || process.argv.includes("--use-qr")
 const requestPairing = !useQr
 const phoneNumber = process.env.OWNER_NUMBER || "2348108574293"
 
-// Memory optimization
 setInterval(() => {
     if (global.gc) {
         global.gc()
-        console.log('🧹 Garbage collection completed')
     }
 }, 60_000)
 
-// Memory monitoring
+let restarting = false;
 setInterval(() => {
     const used = process.memoryUsage().rss / 1024 / 1024
-    if (used > 600) {
-        console.log('⚠️ RAM too high (>600MB), restarting bot...')
+    if (used > 600 && !restarting) {
+        restarting = true;
+        console.log(`⚠️ RAM too high (${used.toFixed(1)}MB > 600MB), restarting bot gracefully...`)
+        flushMessageCount();
         process.exit(1)
     }
 }, 30_000)
 
-// Only create readline interface if we're in an interactive environment
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
 const question = (text) => {
     if (rl) {
@@ -370,7 +326,6 @@ const question = (text) => {
     return Promise.resolve(phoneNumber)
 }
 
-// Session data function
 async function downloadSessionData() {
     try {
         await fs.promises.mkdir(SESSION_DIR, { recursive: true });
@@ -393,143 +348,108 @@ async function downloadSessionData() {
     }
 }
 
-// Load all plugins automatically
 function loadPlugins() {
     const pluginsDir = path.join(__dirname, 'plugins');
     if (fs.existsSync(pluginsDir)) {
         const pluginFiles = fs.readdirSync(pluginsDir).filter(file => file.endsWith('.js'));
-        
+
         pluginFiles.forEach(file => {
             try {
                 require(path.join(pluginsDir, file));
             } catch (error) {
-              //  console.log(chalk.red(`❌ Failed to load: ${file} - ${error.message}`));
+                console.log(chalk.red(`❌ Failed to load: ${file} - ${error.message}`));
             }
         });
-        
+
         console.log(chalk.cyan(`🎯 Total commands registered: ${commands.length}`));
     }
 }
 
-// Clean stale session files to prevent Bad MAC errors
 function cleanStaleSessions() {
     try {
         const files = fs.readdirSync(SESSION_DIR).filter(f => f.startsWith('session-') || f.startsWith('tctoken-'));
         if (files.length < 50) return;
         files.sort((a, b) => fs.statSync(path.join(SESSION_DIR, a)).mtimeMs - fs.statSync(path.join(SESSION_DIR, b)).mtimeMs);
         const toRemove = files.slice(0, files.length - 50);
-        toRemove.forEach(f => { try { fs.unlinkSync(path.join(SESSION_DIR, f)); } catch {} });
+        toRemove.forEach(f => { try { fs.unlinkSync(path.join(SESSION_DIR, f)); } catch { } });
         if (toRemove.length > 0) console.log(chalk.yellow(`🧹 Pruned ${toRemove.length} old session files (${files.length - toRemove.length} kept)`));
     } catch (e) {
         console.error('Session cleanup error:', e.message);
     }
 }
 
-// ========== FIXED NEWSLETTER FOLLOW FUNCTION ==========
 async function followNewsletters(ademolaBot) {
-    //console.log(chalk.cyan('📡 Starting newsletter follow process...'));
-    
-    const followStatus = { 
-        followed: 0, 
-        alreadyFollowing: 0, 
+    const followStatus = {
+        followed: 0,
+        alreadyFollowing: 0,
         failed: 0,
         details: []
     };
 
     for (const newsletterId of NEWSLETTER_IDS) {
         try {
-           // console.log(chalk.blue(`🔄 Processing: ${newsletterId}`));
-            
-            // Check if we're already following this newsletter
             let alreadyFollowing = false;
             try {
                 const metadata = await ademolaBot.newsletterMetadata(newsletterId);
                 if (metadata?.viewer_metadata?.role) {
-                   // console.log(chalk.yellow(`   📌 Already following: ${newsletterId}`));
                     followStatus.alreadyFollowing++;
                     followStatus.details.push({ id: newsletterId, status: 'already_following' });
                     alreadyFollowing = true;
                 }
             } catch (metadataError) {
-                // If metadata check fails, assume we're not following
-              //  console.log(chalk.gray(`   ℹ️  Not following: ${newsletterId}`));
             }
 
-            if (alreadyFollowing) {
-                continue;
-            }
+            if (alreadyFollowing) continue;
 
-            // Attempt to follow the newsletter
             try {
                 await ademolaBot.newsletterFollow(newsletterId);
-                //console.log(chalk.green(`   ✅ Successfully followed: ${newsletterId}`));
                 followStatus.followed++;
                 followStatus.details.push({ id: newsletterId, status: 'followed' });
             } catch (followError) {
                 let errorType = 'unknown';
                 let errorMessage = followError.message || 'Unknown error';
-                
+
                 if (errorMessage.includes('Not Allowed') || errorMessage.includes('403')) {
                     errorType = 'permission_denied';
-                    //console.log(chalk.red(`   ❌ Permission denied: ${newsletterId}`));
                 } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
                     errorType = 'not_found';
-                   // console.log(chalk.red(`   ❌ Newsletter not found: ${newsletterId}`));
                 } else if (errorMessage.includes('rate limit') || errorMessage.includes('too many')) {
                     errorType = 'rate_limit';
-                   // console.log(chalk.red(`   ❌ Rate limited: ${newsletterId}`));
-                } else {
-                   // console.log(chalk.red(`   ❌ Failed to follow ${newsletterId}: ${errorMessage}`));
                 }
-                
+
                 followStatus.failed++;
-                followStatus.details.push({ 
-                    id: newsletterId, 
-                    status: 'failed', 
+                followStatus.details.push({
+                    id: newsletterId,
+                    status: 'failed',
                     error: errorType,
                     message: errorMessage
                 });
             }
 
-            // Add delay between follow attempts to avoid rate limiting
             await delay(2000);
-            
+
         } catch (error) {
-            //console.log(chalk.red(`   💥 Unexpected error with ${newsletterId}: ${error.message}`));
             followStatus.failed++;
-            followStatus.details.push({ 
-                id: newsletterId, 
-                status: 'error', 
+            followStatus.details.push({
+                id: newsletterId,
+                status: 'error',
                 error: 'unexpected',
                 message: error.message
             });
         }
     }
 
- /*   console.log(chalk.cyan(
-        `\n📡 Newsletter Follow Summary:\n✅ Newly Followed: ${followStatus.followed}\n📌 Already Following: ${followStatus.alreadyFollowing}\n❌ Failed: ${followStatus.failed}`
-    ));
-    */
-
-    // Log detailed results
     if (followStatus.details.length > 0) {
-      //  console.log(chalk.yellow('\n📋 Detailed Results:'));
         followStatus.details.forEach(detail => {
-            const icon = detail.status === 'followed' ? '✅' : 
-                        detail.status === 'already_following' ? '📌' : '❌';
-         //   console.log(chalk.yellow(`   ${icon} ${detail.id} - ${detail.status}`));
-            if (detail.error) {
-               // console.log(chalk.gray(`      Error: ${detail.error} - ${detail.message}`));
-            }
+            const icon = detail.status === 'followed' ? '✅' :
+                detail.status === 'already_following' ? '📌' : '❌';
         });
     }
 
     return followStatus;
 }
 
-// Main bot function
 async function startAdemolaXD() {
-    // Add session data handling
     const sessionLoaded = await downloadSessionData();
     if (!sessionLoaded) {
         console.log(chalk.yellow(!requestPairing ? '📱 QR code will be displayed for authentication.' : '🔑 Pairing code will be requested...'));
@@ -564,14 +484,8 @@ async function startAdemolaXD() {
     store.bind(ademolaBot.ev)
     setSocket(ademolaBot)
 
-    // Load all plugins
     loadPlugins();
 
-    // ========== WELCOME & GOODBYE HANDLER INTEGRATION ==========
-    const { handleJoinEvent } = require('./plugins/welcome');
-    const { handleLeaveEvent } = require('./plugins/goodbye');
-
-    // Group participants update handler for welcome/goodbye messages
     ademolaBot.ev.on('group-participants.update', async (update) => {
         try {
             const { id, participants, action: eventAction } = update;
@@ -579,104 +493,90 @@ async function startAdemolaXD() {
             const pList = participants.map(p => (p.phoneNumber || p.id || '').split('@')[0]).join(', ');
             console.log(`👥 ${actionLabel} ${id.split('@')[0]}: ${pList}`);
             pushActivity(eventAction === 'add' ? 'join' : 'leave', `${pList} in ${id.split('@')[0]}`);
-            
-            // Handle join events - welcome new members
+
             if (eventAction === 'add') {
                 await handleJoinEvent(ademolaBot, id, participants);
             }
-            
-            // Handle leave events - goodbye messages
+
             if (eventAction === 'remove') {
                 await handleLeaveEvent(ademolaBot, id, participants);
             }
-            
+
         } catch (error) {
-           // console.error('❌ Error in group participants update:', error);
+            console.error('❌ Error in group participants update:', error);
         }
     });
 
-    // ========== COMPLETE MESSAGE HANDLING INTEGRATION ==========
     ademolaBot.ev.on('messages.upsert', async (chatUpdate) => {
         try {
             const mek = chatUpdate.messages[0]
             if (!mek.message) return
-            
-            // Enhanced message processing for antidelete
+
+            if (isDuplicateMessage(mek.key.id)) return;
+
             mek.message = (Object.keys(mek.message)[0] === 'ephemeralMessage') ? mek.message.ephemeralMessage.message : mek.message
-            
-            //console.log(`📨 New message received: ${mek.key.id} from ${mek.key.remoteJid}`);
-            
-            // Store messages for antidelete system - ONLY IF ANTIDELETE IS ENABLED
+
             try {
                 const antideleteConfig = loadAntideleteConfig();
                 if (antideleteConfig.enabled) {
                     await storeAntideleteMessage(mek);
-                    //console.log(`💾 Message stored in antidelete cache: ${mek.key.id}`);
                 }
             } catch (storeError) {
-              //  console.error('Error storing message for antidelete:', storeError);
+                console.error('Error storing message for antidelete:', storeError);
             }
-            
-            // === ANTILINK DETECTION ===
+
             try {
                 await Antilink(mek, ademolaBot);
             } catch (antilinkError) {
-                //console.error('Error in antilink detection:', antilinkError);
+                console.error('Error in antilink detection:', antilinkError);
             }
-            
-            // === AUTO STATUS HANDLING ===
+
             try {
                 await handleStatusUpdate(ademolaBot, chatUpdate);
             } catch (statusError) {
-               // console.error('Error in auto status handling:', statusError);
+                console.error('Error in auto status handling:', statusError);
             }
-            
-            // Handle autoread functionality
+
             await handleAutoread(ademolaBot, mek);
-            
-            // AFK return detection
+
             try {
-                const { handleAfkReturn } = require('./plugins/afk');
                 const senderIdAfk = mek.key.participant || mek.key.remoteJid;
                 if (!mek.key.fromMe) await handleAfkReturn(ademolaBot, mek, mek.key.remoteJid, senderIdAfk);
             } catch (e) {
                 console.error('AFK return error:', e.message);
             }
-            
-            // Newsletter react functionality
+
             if (mek.key && newsletterJids.includes(mek.key.remoteJid)) {
-              try {
-                const serverId = mek.newsletterServerId;
-                if (serverId) {
-                  const emoji = emojis[Math.floor(Math.random() * emojis.length)];
-                  await ademolaBot.newsletterReactMessage(mek.key.remoteJid, serverId.toString(), emoji);
+                try {
+                    const serverId = mek.newsletterServerId;
+                    if (serverId) {
+                        const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+                        await ademolaBot.newsletterReactMessage(mek.key.remoteJid, serverId.toString(), emoji);
+                    }
+                } catch (e) {
+                    console.error('Newsletter react error:', e);
                 }
-              } catch (e) {
-                // Silent catch
-              }
             }
-            
+
             if (mek.key && mek.key.remoteJid === 'status@broadcast') {
-                await ademolaBot.readMessages([mek.key]).catch(() => {});
+                await ademolaBot.readMessages([mek.key]).catch(() => { });
                 return;
             }
-            
-            // Read bot mode from persistent settings
+
             let isPublic = true;
             try {
                 const currentSettings = loadSettings();
                 isPublic = currentSettings.commandMode !== 'private';
             } catch (error) {
-              //  console.error('Error checking bot mode:', error);
+                console.error('Error checking bot mode:', error);
             }
-            
+
             if (!isPublic && !mek.key.fromMe && chatUpdate.type === 'notify') {
                 const msgSender = mek.key.participant || mek.key.remoteJid;
                 if (!(await isOwnerOrSudo(msgSender))) return;
             }
             if (mek.key.id.startsWith('BAE5') && mek.key.id.length === 16) return
 
-            // Clear message retry cache to prevent memory bloat
             if (ademolaBot?.msgRetryCounterCache) {
                 ademolaBot.msgRetryCounterCache.clear()
             }
@@ -684,48 +584,39 @@ async function startAdemolaXD() {
             try {
                 await handleAdemolaMessages(ademolaBot, mek)
             } catch (err) {
-               // console.error("Error in handleAdemolaMessages:", err)
+                console.error("Error in handleAdemolaMessages:", err)
                 if (mek.key && mek.key.remoteJid) {
                     await ademolaBot.sendMessage(mek.key.remoteJid, {
                         text: '❌ An error occurred while processing your message.',
-                        ...channelInfo 
+                        ...channelInfo
                     }).catch(console.error);
                 }
             }
         } catch (err) {
-           // console.error("Error in messages.upsert:", err)
+            console.error("Error in messages.upsert:", err)
         }
     })
 
-    // ========== FIXED MESSAGE DELETION HANDLER ==========
     ademolaBot.ev.on('messages.update', async (updates) => {
         try {
-         //   console.log(`🔄 messages.update event triggered with ${updates.length} update(s)`);
-            
-            // Check if antidelete is enabled before processing
             const antideleteConfig = loadAntideleteConfig();
             if (!antideleteConfig.enabled) {
-                //console.log('🚫 Antidelete is disabled, skipping deletion processing');
                 return;
             }
-            
-            // Handle status updates in message updates
+
             for (const update of updates) {
                 if (update.key?.remoteJid === 'status@broadcast') {
                     await handleStatusUpdate(ademolaBot, update);
                 }
             }
-            
-            // Anti-delete handling - USE ONLY THE MAIN FUNCTION
-           // console.log('🔍 Processing deletions with AntiDelete...');
+
             await AntiDelete(ademolaBot, updates);
-            
+
         } catch (error) {
-           // console.error('Error in messages.update handler:', error);
+            console.error('Error in messages.update handler:', error);
         }
     });
 
-    // Ademola XD message handler
     async function handleAdemolaMessages(ademola, mek) {
         const m = smsg(ademola, mek, store);
         const from = mek.key.remoteJid;
@@ -733,22 +624,19 @@ async function startAdemolaXD() {
         const isGroup = from.endsWith('@g.us');
         const senderShort = senderId.split('@')[0];
         const fromName = isGroup ? from.split('@')[0] : senderShort;
-        
-        // Get message content
-        const body = mek.message?.conversation || 
-                    mek.message?.extendedTextMessage?.text || 
-                    mek.message?.imageMessage?.caption ||
-                    mek.message?.videoMessage?.caption || '';
-        
+
+        const body = sanitizeInput(mek.message?.conversation ||
+            mek.message?.extendedTextMessage?.text ||
+            mek.message?.imageMessage?.caption ||
+            mek.message?.videoMessage?.caption || '');
+
         if (body) {
             console.log(`💬 ${isGroup ? '[GRP]' : '[DM]'} ${senderShort}${isGroup ? ' in ' + from.split('@')[0] : ''}: ${body.slice(0, 100)}`);
             pushActivity(isGroup ? 'group_msg' : 'dm_msg', `${senderShort}: ${body.slice(0, 60)}`);
         }
-        
-        // Get current prefix dynamically
+
         const currentPrefix = getPrefix();
-        
-        // Read bot mode from persistent settings
+
         let isPublic = true;
         try {
             const currentSettings = loadSettings();
@@ -756,13 +644,11 @@ async function startAdemolaXD() {
         } catch (error) {
             console.error('Error checking bot mode:', error);
         }
-        
-        // Check bot mode restrictions
+
         if (!isPublic && !mek.key.fromMe && !(await isOwnerOrSudo(senderId))) {
-            return; // Silently ignore in private mode
+            return;
         }
 
-        // Check if user is banned
         if (isBanned(senderId) && !body.startsWith(`${currentPrefix}unban`)) {
             if (Math.random() < 0.1) {
                 await ademola.sendMessage(from, {
@@ -773,31 +659,30 @@ async function startAdemolaXD() {
             return;
         }
 
-        // PM blocker
         if (!isGroup && !mek.key.fromMe && !(await isOwnerOrSudo(senderId))) {
             try {
                 const pmState = readPmBlockerState();
                 if (pmState.enabled) {
                     await ademola.sendMessage(from, { text: pmState.message || 'Private messages are blocked.' });
                     await new Promise(r => setTimeout(r, 1500));
-                    try { await ademola.updateBlockStatus(from, 'block'); } catch (e) { }
+                    try { await ademola.updateBlockStatus(from, 'block'); } catch (e) {
+                        console.error('PM block error:', e);
+                    }
                     return;
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.error('PM blocker error:', e);
+            }
         }
 
         if (!body.startsWith(currentPrefix)) {
-            // Increment message count for non-command messages
             if (!mek.key.fromMe) incrementMessageCount(from, senderId);
-            
-            // Handle autotyping for non-command messages
+
             await handleAutotypingForMessage(ademola, from, body);
-            
-            // Handle auto-reply for private messages (away mode)
+
             if (!isGroup && !mek.key.fromMe && !(await isOwnerOrSudo(senderId))) {
                 try {
-                    const { getConfig } = require('./plugins/autoreply');
-                    const config = getConfig();
+                    const config = getAutoReplyConfig();
                     if (config && config.enabled) {
                         console.log(`🤖 Auto-reply to ${senderShort}: "${config.message.slice(0, 80)}"`);
                         pushActivity('autoreply', `to ${senderShort}`);
@@ -807,25 +692,22 @@ async function startAdemolaXD() {
                     console.error('Auto-reply error:', e.message);
                 }
             }
-            
-            // Handle sticker auto-reply (DM or when bot is mentioned in group)
+
             try {
-                const { handleStickerReply } = require('./plugins/stickerreply');
                 await handleStickerReply(ademola, mek, from, senderId);
             } catch (e) {
                 console.error('Sticker reply error:', e.message);
             }
-            
-            // Handle group-specific features
+
             if (isGroup) {
-                // Chatbot response
                 await handleChatbotResponse(ademola, from, mek, body, senderId);
-                
-                // Tag detection (antitag)
-                const { handleTagDetection } = require('./plugins/antitag');
-                await handleTagDetection(ademola, from, mek, senderId);
-                
-                // Mention detection
+
+                try {
+                    await handleTagDetection(ademola, from, mek, senderId);
+                } catch (e) {
+                    console.error('Anti-tag error:', e);
+                }
+
                 await handleMentionDetection(ademola, from, mek);
             }
             return;
@@ -834,22 +716,23 @@ async function startAdemolaXD() {
         const cmd = body.slice(currentPrefix.length).trim().split(' ')[0].toLowerCase();
         const args = body.slice(currentPrefix.length + cmd.length).trim().split(' ');
         const q = args.join(' ').trim();
-        
-        // Find the command
-        const command = commands.find(cmdObj => 
-            cmdObj.pattern === cmd || 
+
+        const command = commands.find(cmdObj =>
+            cmdObj.pattern === cmd ||
             (cmdObj.alias && cmdObj.alias.includes(cmd))
         );
 
         if (command) {
+            if (!mek.key.fromMe && enforceCommandCooldown(senderId)) {
+                return;
+            }
+
             try {
                 console.log(`⚡ CMD: .${cmd} by ${senderShort}${isGroup ? ' in ' + from.split('@')[0] : ''}${q ? ' | args: ' + q.slice(0, 80) : ''}`);
                 pushActivity('command', `.${cmd} by ${senderShort}`);
 
-                // Increment message count for commands
                 if (!mek.key.fromMe) incrementMessageCount(from, senderId);
 
-                // Wrap reply to log sent messages
                 const originalReply = (text, options = {}) => ademola.sendMessage(from, { text, ...options }, { quoted: mek });
                 const loggedReply = async (text, options = {}) => {
                     const preview = typeof text === 'string' ? text.slice(0, 80) : '[media]';
@@ -876,25 +759,23 @@ async function startAdemolaXD() {
                         return await isAdmin(ademola, from, senderId);
                     }
                 });
-                
+
                 try {
-                    const { addActivity } = require('./plugins/autostatus');
-                    addActivity('command', `Executed ${currentPrefix}${cmd} from ${isGroup ? 'group' : 'private chat'}`);
-                } catch (e) {}
-                
-                // Show typing after command execution
+                    addAutoStatusActivity('command', `Executed ${currentPrefix}${cmd} from ${isGroup ? 'group' : 'private chat'}`);
+                } catch (e) {
+                    console.error('Auto-status activity error:', e);
+                }
+
                 await showTypingAfterCommand(ademola, from);
-                
-                // Add command reaction
                 await addCommandReaction(ademola, mek);
-                
+
             } catch (error) {
+                console.error(`❌ Command .${cmd} failed:`, error);
                 await ademola.sendMessage(from, { text: `❌ Error: ${error.message}` }, { quoted: mek });
             }
         }
     }
 
-    // Add utility functions to ademolaBot
     ademolaBot.decodeJid = (jid) => {
         if (!jid) return jid
         if (/:\d+@/gi.test(jid)) {
@@ -924,7 +805,6 @@ async function startAdemolaXD() {
     ademolaBot.public = true
     ademolaBot.serializeM = (m) => smsg(ademolaBot, m, store)
 
-    // Handle pairing code
     if (requestPairing && !sessionLoaded) {
         if (useMobile) throw new Error('Cannot use pairing code with mobile api')
 
@@ -950,7 +830,6 @@ async function startAdemolaXD() {
         }, 3000)
     }
 
-    // Anti-call handler
     const antiCallNotified = new Set();
     ademolaBot.ev.on('call', async (calls) => {
         try {
@@ -965,7 +844,9 @@ async function startAdemolaXD() {
                     } else if (typeof ademolaBot.sendCallOfferAck === 'function' && call.id) {
                         await ademolaBot.sendCallOfferAck(call.id, callerJid, 'reject');
                     }
-                } catch {}
+                } catch (e) {
+                    console.error('Call reject error:', e);
+                }
 
                 if (!antiCallNotified.has(callerJid)) {
                     antiCallNotified.add(callerJid);
@@ -974,32 +855,32 @@ async function startAdemolaXD() {
                 }
 
                 setTimeout(async () => {
-                    try { await ademolaBot.updateBlockStatus(callerJid, 'block'); } catch {}
+                    try { await ademolaBot.updateBlockStatus(callerJid, 'block'); } catch (e) {
+                        console.error('Block error:', e);
+                    }
                 }, 800);
             }
         } catch (e) {
-            // ignore
+            console.error('Call handler error:', e);
         }
     });
 
-    // Connection handling
     ademolaBot.ev.on('connection.update', async (s) => {
         const { connection, lastDisconnect } = s
         if (connection == "open") {
             console.log(chalk.magenta(` `))
             console.log(chalk.bold.blue(`🤖 Connected to => ` + JSON.stringify(ademolaBot.user, null, 2)))
 
-            // Auto-detect owner from bot's own identity
             const botUserJid = ademolaBot.user.id.split(':')[0] + '@s.whatsapp.net';
             global.ownerJid = botUserJid;
             console.log(chalk.green(`👑 Owner auto-detected: ${global.ownerJid}`));
 
             const botNumber = botUserJid;
             const botName = ademolaBot.user?.name || ademolaBot.user?.pushName || 'Ademola Bot';
-            
+
             const currentSettings = loadSettings();
             const antideleteConfig = loadAntideleteConfig();
-            
+
             try {
                 const welcomeMsg = `╭─ 🤖 *${botName}* ─╮
 │ ✅ Connected & Ready
@@ -1017,28 +898,26 @@ async function startAdemolaXD() {
 
             await delay(1999)
             console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ ${global.botname} ]`)}\n\n`))
-            
-            // ========== FIXED NEWSLETTER FOLLOWING ==========
+
             const followStatus = await followNewsletters(ademolaBot);
-           
+
             console.log(chalk.bold.yellow(`< =================================== >`))
             console.log(chalk.bold.green(` ✅ Status: Connected & Ready`))
             console.log(chalk.bold.blue(` 🔒 Session: Protected`))
             console.log(chalk.bold.blue(` 🚯 Antidelete: ${antideleteConfig.enabled ? 'ENABLED' : 'DISABLED'}`))
             console.log(chalk.bold.blue(` 🔧 Bot Mode: ${currentSettings.commandMode?.toUpperCase() || 'PUBLIC'}`))
-            //console.log(chalk.bold.blue(` 📢 Newsletters: ${followStatus.followed} new, ${followStatus.alreadyFollowing} existing, ${followStatus.failed} failed`))
             console.log(chalk.bold.blue(`
  ──[ 🤖 𝚆𝚎𝚕𝚌𝚘𝚖 𝙳𝚎𝚊𝚛 𝚄𝚜𝚎𝚛! ]─
 
  If you enjoy using this bot,
  please ⭐  Star it & 🍴  Fork it on GitHub!
  your support keeps it growing! 💙 
- 
+
 `))
             console.log(chalk.bold.yellow(`< ================================== >`))
 
             setInterval(cleanStaleSessions, 6 * 60 * 60 * 1000);
-                               
+
         }
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode
@@ -1050,6 +929,7 @@ async function startAdemolaXD() {
             }
             console.log(chalk.yellow(`🔄 Reconnecting in 3s... (code: ${statusCode || 'unknown'})`));
             await delay(3000);
+            restarting = false;
             startAdemolaXD();
         }
     })
@@ -1059,7 +939,6 @@ async function startAdemolaXD() {
     return ademolaBot
 }
 
-// Start the bot with error handling
 startAdemolaXD().catch(error => {
     console.error('Fatal error:', error)
     process.exit(1)
@@ -1072,15 +951,3 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (err) => {
     console.error('Unhandled Rejection:', err)
 })
-
-let file = require.resolve(__filename)
-let hotReloading = false
-fs.watchFile(file, () => {
-    if (hotReloading) return
-    hotReloading = true
-    fs.unwatchFile(file)
-    console.log(chalk.redBright(`Update ${__filename}`))
-    delete require.cache[file]
-    require(file)
-})
-// if u are a real dev stop using my codes

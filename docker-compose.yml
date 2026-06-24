@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  ademola-xd:
+    build: .
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - SESSION_ID=${SESSION_ID:-}  # Add your SESSION_ID if you have one
+      - OWNER_NUMBER=${OWNER_NUMBER:-2348108574293}
+      - OWNER_NAME=${OWNER_NAME:-Ademola King}
+      - BOT_NAME=${BOT_NAME:-ADEMOLA XD 🔥}
+    volumes:
+      - ./session:/app/session        # WhatsApp session credentials
+      - ./data:/app/data              # Bot data (messageCount.json, settings.json)
+      - ./temp:/app/temp              # Temporary files
+      - ./tmp:/app/tmp                # Additional temp files
+      - ./logs:/app/logs              # Application logs
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: [
+        "CMD",
+        "node",
+        "-e",
+        "try { require('fs').accessSync('./session/creds.json'); process.exit(0); } catch(e) { process.exit(1); }"
+      ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  session:
+  data:
+  temp:
+  tmp:
+  logs:

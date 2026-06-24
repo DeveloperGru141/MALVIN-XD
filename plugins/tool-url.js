@@ -17,10 +17,10 @@ function formatBytes(bytes) {
 }
 
 const API_KEYS = [
-  process.env.IMGBB_API_KEY_1 || '40dfb24c7b48ba51487a9645abf33148',
-  process.env.IMGBB_API_KEY_2 || '4a9c3527b0cd8b12dd4d8ab166a0f592',
-  process.env.IMGBB_API_KEY_3 || '0e2b3697320c339de00589478be70c48',
-  process.env.IMGBB_API_KEY_4 || '7b46d3cddc9b67ef690ed03dce9cb7d5'
+  process.env.IMGBB_API_KEY_1,
+  process.env.IMGBB_API_KEY_2,
+  process.env.IMGBB_API_KEY_3,
+  process.env.IMGBB_API_KEY_4
 ].filter(Boolean);
 
 ademola({

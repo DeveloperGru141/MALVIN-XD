@@ -24,7 +24,8 @@ ademola({
 
         let [emoji1, emoji2] = text.split('+').map(e => e.trim());
 
-        const tenorKey = process.env.TENOR_API_KEY || 'AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ';
+        const tenorKey = process.env.TENOR_API_KEY;
+        if (!tenorKey) return await reply('❌ TENOR_API_KEY not configured in .env');
         const url = `https://tenor.googleapis.com/v2/featured?key=${tenorKey}&contentfilter=high&media_filter=png_transparent&component=proactive&collection=emoji_kitchen_v5&q=${encodeURIComponent(emoji1)}_${encodeURIComponent(emoji2)}`;
 
         const response = await fetch(url);

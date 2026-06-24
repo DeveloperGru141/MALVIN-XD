@@ -39,7 +39,7 @@ async function sendFbLoading(ademola, from, action = "Processing") {
 const fbApis = [
     {
         name: "Nexoracle",
-        url: (url) => `https://api.nexoracle.com/downloader/facebook?apikey=${process.env.NEXORACLE_API_KEY || 'e276311658d835109c'}&url=${encodeURIComponent(url)}`,
+        url: (url) => `https://api.nexoracle.com/downloader/facebook?apikey=${process.env.NEXORACLE_API_KEY}&url=${encodeURIComponent(url)}`,
         parse: (data) => data?.result?.hd || data?.result?.sd
     },
     {
@@ -162,8 +162,14 @@ ademola({
         let videoData = null;
         let apiUsed = null;
 
+        // Filter APIs that require configured keys
+        const availableApis = fbApis.filter(api => {
+            if (api.name === 'Nexoracle' && !process.env.NEXORACLE_API_KEY) return false;
+            return true;
+        });
+
         // Try multiple APIs
-        for (const api of fbApis) {
+        for (const api of availableApis) {
             try {
                 console.log(`Trying ${api.name} API...`);
                 const data = await fetchFromFacebookApi(api, resolvedUrl);

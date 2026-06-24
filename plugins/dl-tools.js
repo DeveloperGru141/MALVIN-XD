@@ -256,7 +256,8 @@ ademola({
         let images;
 
         try {
-            const pixRes = await axios.get(`https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY || '48810274-0b9f91187a0e243bd5be3abb4'}&q=${encodeURIComponent(q)}&image_type=photo&per_page=5`, { timeout: 10000 });
+            if (!process.env.PIXABAY_API_KEY) throw new Error('PIXABAY_API_KEY not configured');
+            const pixRes = await axios.get(`https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(q)}&image_type=photo&per_page=5`, { timeout: 10000 });
             if (pixRes.data?.hits?.length) {
                 images = pixRes.data.hits.map(h => ({ url: h.largeImageURL || h.webformatURL }));
             }
@@ -264,7 +265,8 @@ ademola({
 
         if (!images) {
             try {
-                const unsplashRes = await axios.get(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=5&client_id=${process.env.UNSPLASH_API_KEY || 'ab3411e4ac868c2646c0cd48860bb82c0c531c24c3e22068c4393ac7e47a86a7'}`, { timeout: 10000 });
+                if (!process.env.UNSPLASH_API_KEY) throw new Error('UNSPLASH_API_KEY not configured');
+                const unsplashRes = await axios.get(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=5&client_id=${process.env.UNSPLASH_API_KEY}`, { timeout: 10000 });
                 if (unsplashRes.data?.results?.length) {
                     images = unsplashRes.data.results.map(h => ({ url: h.urls?.regular || h.urls?.small }));
                 }

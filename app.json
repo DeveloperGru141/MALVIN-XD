@@ -1,6 +1,6 @@
 {
   "name": "ademola-xd",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "ADEMOLA-XD - Advanced WhatsApp Bot",
   "website": "",
   "logo": "https://i.ibb.co/zHhMyRT3/ademola-xd.jpg",
@@ -11,32 +11,52 @@
     "BOT_NAME": {
       "description": "Your Bot Name",
       "required": true,
-      "value": "ᴀᴅᴇᴍᴏʟᴀ-xᴅ"
+      "value": "ademola-xd"
     },
     "OWNER_NAME": {
-      "description": "Put Owner Name Here",
+      "description": "Owner Name",
       "required": true,
-      "value": "ᴀᴅᴇᴍᴏʟᴀ"
+      "value": "Ademola"
     },
     "OWNER_NUMBER": {
-      "description": "Put only one Owner Number Here",
+      "description": "Owner WhatsApp number (without +)",
       "required": true,
       "value": "2348108574293"
     },
     "SESSION_ID": {
-      "description": "Put your session-id here.",
+      "description": "Base64-encoded session for auto-login (leave empty for pairing code)",
       "required": false,
       "value": ""
     },
     "MODE": {
-      "description": "Set Mode to 'public' to work in all chats, 'private' to work for you only",
+      "description": "public = everyone can use, private = owner only",
       "required": true,
       "value": "public"
     },
     "TIMEZONE": {
-      "description": "Set your timezone",
-      "required": true,
+      "description": "Your timezone (e.g. Africa/Lagos, America/New_York)",
+      "required": false,
       "value": "Africa/Lagos"
+    },
+    "GIPHY_API_KEY": {
+      "description": "GIPHY API key for GIF commands",
+      "required": false,
+      "value": ""
+    },
+    "TENOR_API_KEY": {
+      "description": "Tenor API key for emoji mix commands",
+      "required": false,
+      "value": ""
+    },
+    "NEXORACLE_API_KEY": {
+      "description": "Nexoracle API key for downloaders & stalking",
+      "required": false,
+      "value": ""
+    },
+    "TELEGRAM_BOT_TOKEN": {
+      "description": "Telegram bot token for sticker downloader",
+      "required": false,
+      "value": ""
     }
   }
 }

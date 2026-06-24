@@ -1,4 +1,4 @@
-ADEMOLA XD — WhatsApp Bot
+ADEMOLA — WhatsApp Bot
 ===========================
 
 Version 2.2.0 | Node >= 18.0.0 | License: ISC
@@ -31,19 +31,11 @@ QUICK START
    npm install --legacy-peer-deps
 
 
-2. Run:
    npm start
 
 
 AUTHENTICATION
 --------------
-
-Pairing Code (first time):
-  1. Run npm start
-  2. Enter your WhatsApp number when prompted
-  3. Open WhatsApp > Linked Devices > Link a Device
-  4. Enter the pairing code shown in terminal
-
 
 COMMANDS
 --------
@@ -68,8 +60,6 @@ COMMANDS
 
 CREDITS
 -------
-
-Built by Ademola
 
 
 DISCLAIMER

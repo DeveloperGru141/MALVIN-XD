@@ -24,7 +24,8 @@ ademola({
         await reply('🔄 Fetching channel information...');
 
         const url = encodeURIComponent(q);
-        const nexoracleKey = process.env.NEXORACLE_API_KEY || 'e276311658d835109c';
+        const nexoracleKey = process.env.NEXORACLE_API_KEY;
+        if (!nexoracleKey) return await reply('❌ NEXORACLE_API_KEY not configured in .env');
         const { data } = await axios.get(`https://api.nexoracle.com/stalking/whatsapp-channel?apikey=${nexoracleKey}&url=${url}`, {
             timeout: 15000
         });

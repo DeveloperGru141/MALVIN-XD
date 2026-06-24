@@ -104,7 +104,8 @@ ademola({
         // Start ultra-fast loading animation
         const loadingAnimation = await sendIgLoading(ademola, from, "Fetching Instagram data");
 
-        const nexoracleKey = process.env.NEXORACLE_API_KEY || 'e276311658d835109c';
+        const nexoracleKey = process.env.NEXORACLE_API_KEY;
+        if (!nexoracleKey) return await reply('❌ NEXORACLE_API_KEY not configured in .env');
         const igRes = await axios.get(`https://api.nexoracle.com/downloader/ig?apikey=${nexoracleKey}&url=${encodeURIComponent(q)}`, { timeout: 20000 });
         const downloadData = igRes.data;
 
