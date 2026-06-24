@@ -5,15 +5,18 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "start:optimized": "node --max-old-space-size=512 --optimize-for-size --gc-interval=100 index.js",
+    "start:production": "node --expose-gc --max-old-space-size=512 index.js",
+    "start:optimized": "node --expose-gc --max-old-space-size=512 --optimize-for-size --gc-interval=100 index.js",
+    "start:pm2": "pm2 start index.js --name ademola-xd -i 1 --max-memory-restart 512M --node-args=\"--expose-gc --max-old-space-size=512\"",
     "cleanup": "node cleanup.js",
     "reset-session": "node reset-session.js",
-    "start:clean": "npm run cleanup && npm run start:optimized",
+    "start:clean": "npm run cleanup && npm run start:production",
     "start:fresh": "npm run reset-session && npm start",
     "install:panel": "npm install --legacy-peer-deps",
     "install:force": "npm install --force",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "docker:build": "docker build -t docker run -e SESSION_ID=$SESSION_ID ademolaXD"
+    "test": "node -e \"require('./lib/cache'); require('./lib/isBanned'); require('./lib/settingsManager'); require('./lib/myfunc'); console.log('All modules loaded successfully');\"",
+    "docker:build": "docker build -t ademola-xd .",
+    "validate:env": "node -e \"const e=['SESSION_ID','OWNER_NUMBER','OWNER_NAME','BOT_NAME']; e.forEach(k=>{if(!process.env[k])console.warn('Missing: '+k)}); console.log('Validation complete');\""
   },
   "keywords": [
     "whatsapp-bot", "ademola-xd", "baileys"
@@ -26,7 +29,7 @@
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@hapi/boom": "^10.0.1",
     "@types/node": "^18.0.6",
-    "@whiskeysockets/baileys": "^v7.0.0-rc.9",
+    "@whiskeysockets/baileys": "7.0.0-rc.9",
     "awesome-phonenumber": "^5.9.0",
     "adm-zip": "^0.5.16",
     "axios": "^1.8.4",
