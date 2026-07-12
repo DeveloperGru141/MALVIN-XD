@@ -14,7 +14,7 @@ ademola({
 }, async (ademola, mek, m, { from, q, reply, isAdmin, isGroup }) => {
     try {
     
-        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
+        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(m.sender));
         let userToBan;
 
         // Check for mentioned users
@@ -139,7 +139,7 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, q, reply, isAdmin, isGroup }) => {
     try {
-        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
+        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(m.sender));
         let userToUnban;
 
         // Check for mentioned users
@@ -236,7 +236,7 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, q, reply, isAdmin, isGroup }) => {
     try {
-        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
+        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(m.sender));
         // Check permissions
         if (isGroup) {
             const adminStatus = await isAdmin();

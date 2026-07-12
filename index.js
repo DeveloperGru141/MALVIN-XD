@@ -1,23 +1,16 @@
 require('./settings')
-const { Boom } = require('@hapi/boom')
 const fs = require('fs')
 const chalk = require('chalk')
 const path = require('path')
 const PhoneNumber = require('awesome-phonenumber')
 const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = require('./lib/exif')
-const { smsg, isUrl, getBuffer, getSizeMedia, sleep, reSize } = require('./lib/myfunc')
+const { smsg, isUrl, getBuffer, getSizeMedia, sleep, reSize, toTinyCaps } = require('./lib/myfunc')
 const {
     default: makeWASocket,
     useMultiFileAuthState,
     DisconnectReason,
     fetchLatestBaileysVersion,
-    generateForwardMessageContent,
-    prepareWAMessageMedia,
-    generateWAMessageFromContent,
-    generateMessageID,
-    downloadContentFromMessage,
     jidDecode,
-    proto,
     jidNormalizedUser,
     makeCacheableSignalKeyStore,
     delay
@@ -25,8 +18,11 @@ const {
 const NodeCache = require("node-cache")
 const pino = require("pino")
 const readline = require("readline")
+<<<<<<< HEAD
 const { rmSync, existsSync } = require('fs')
 const { join } = require('path')
+=======
+>>>>>>> 844315816c65935d2ef65ce1f8013ce525023bfd
 
 const { loadSettings } = require('./lib/settingsManager');
 const { ademola, commands, setSocket } = require('./ademola')
@@ -309,7 +305,7 @@ const question = (text) => {
 async function downloadSessionData() {
     try {
         await fs.promises.mkdir(SESSION_DIR, { recursive: true });
-        if (!existsSync(CREDS_PATH)) {
+        if (!fs.existsSync(CREDS_PATH)) {
             if (!global.SESSION_ID) {
                 console.log(chalk.red('Session ID not found and creds.json missing! Falling back to pairing code...'));
                 return false;
@@ -900,7 +896,7 @@ async function startAdemolaXD() {
             const statusCode = lastDisconnect?.error?.output?.statusCode
             if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
                 try {
-                    rmSync(SESSION_DIR, { recursive: true, force: true })
+                    fs.rmSync(SESSION_DIR, { recursive: true, force: true })
                 } catch { }
                 console.log(chalk.red('Session logged out. Please re-authenticate.'))
             }

@@ -4,11 +4,15 @@ const os = require('os');
 const { fakevCard } = require('../lib/fakevCard');
 const { channelInfo } = require('../lib/messageConfig');
 const { loadSettings } = require('../lib/settingsManager');
+const { toTinyCaps } = require('../lib/myfunc');
 
 const botStartTime = Date.now();
 
+<<<<<<< HEAD
 const { toTinyCaps } = require('../lib/tinyCaps');
 
+=======
+>>>>>>> 844315816c65935d2ef65ce1f8013ce525023bfd
 // Format status info with tiny caps
 const formatStatusInfo = (pushname, harareTime, harareDate, runtimeHours, runtimeMinutes, runtimeSeconds, settings) => `
 ╭──〔 🎖 ${toTinyCaps(settings.botName)} 〕──
