@@ -1,20 +1,8 @@
-const { ademola, fakevCard } = require("../ademola");
-const fs = require('fs');
-const path = require('path');
+const { ademola } = require("../ademola");
+const { incrementWarningCount, resetWarningCount } = require('../lib/index');
+const config = require('../config');
 
-// Define paths
-const databaseDir = path.join(process.cwd(), 'data');
-const warningsPath = path.join(databaseDir, 'warnings.json');
-
-// Initialize warnings file if it doesn't exist
-function initializeWarningsFile() {
-    if (!fs.existsSync(databaseDir)) {
-        fs.mkdirSync(databaseDir, { recursive: true });
-    }
-    if (!fs.existsSync(warningsPath)) {
-        fs.writeFileSync(warningsPath, JSON.stringify({}), 'utf8');
-    }
-}
+const WARN_LIMIT = config.WARN_COUNT || 3;
 
 ademola({
     pattern: "warn",
@@ -26,14 +14,10 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
     try {
-        // Initialize files first
-        initializeWarningsFile();
-
         if (!isGroup) {
             return await reply('❌ This command can only be used in groups!');
         }
 
-        // Check admin status
         const adminStatus = await isAdmin();
         
         if (!adminStatus.isBotAdmin) {
@@ -46,15 +30,10 @@ ademola({
 
         let userToWarn;
         
-        // SIMPLE METHOD: Same as promote/demote - check participant in contextInfo
         if (mek.message?.extendedTextMessage?.contextInfo?.participant) {
             userToWarn = mek.message.extendedTextMessage.contextInfo.participant;
-            console.log('✅ Found user to warn:', userToWarn);
-        }
-        // Check for mentioned users
-        else if (mek.message?.extendedTextMessage?.contextInfo?.mentionedJid) {
+        } else if (mek.message?.extendedTextMessage?.contextInfo?.mentionedJid) {
             userToWarn = mek.message.extendedTextMessage.contextInfo.mentionedJid[0];
-            console.log('✅ Found mentioned user to warn:', userToWarn);
         }
         
         if (!userToWarn) {
@@ -62,48 +41,29 @@ ademola({
         }
 
         try {
-            // Read warnings, create empty object if file is empty
-            let warnings = {};
-            try {
-                warnings = JSON.parse(fs.readFileSync(warningsPath, 'utf8'));
-            } catch (error) {
-                warnings = {};
-            }
-
-            // Initialize nested objects if they don't exist
-            if (!warnings[from]) warnings[from] = {};
-            if (!warnings[from][userToWarn]) warnings[from][userToWarn] = 0;
-            
-            warnings[from][userToWarn]++;
-            fs.writeFileSync(warningsPath, JSON.stringify(warnings, null, 2));
+            const warningCount = await incrementWarningCount(from, userToWarn);
 
             const warningMessage = `*『 WARNING ALERT 』*\n\n` +
                 `👤 *Warned User:* @${userToWarn.split('@')[0]}\n` +
-                `⚠️ *Warning Count:* ${warnings[from][userToWarn]}/3\n` +
+                `⚠️ *Warning Count:* ${warningCount}/${WARN_LIMIT}\n` +
                 `👑 *Warned By:* @${sender.split('@')[0]}\n\n` +
                 `📅 *Date:* ${new Date().toLocaleString()}`;
 
             await ademola.sendMessage(from, { 
                 text: warningMessage,
                 mentions: [userToWarn, sender]
-            }, {
-                quoted: fakevCard
             });
 
-            // Auto-kick after 3 warnings
-            if (warnings[from][userToWarn] >= 3) {
+            if (warningCount >= WARN_LIMIT) {
                 await ademola.groupParticipantsUpdate(from, [userToWarn], "remove");
-                delete warnings[from][userToWarn];
-                fs.writeFileSync(warningsPath, JSON.stringify(warnings, null, 2));
+                await resetWarningCount(from, userToWarn);
                 
                 const kickMessage = `*『 AUTO-KICK 』*\n\n` +
-                    `@${userToWarn.split('@')[0]} has been removed from the group after receiving 3 warnings! ⚠️`;
+                    `@${userToWarn.split('@')[0]} has been removed from the group after receiving ${WARN_LIMIT} warnings! ⚠️`;
 
                 await ademola.sendMessage(from, { 
                     text: kickMessage,
                     mentions: [userToWarn]
-                }, {
-                    quoted: fakevCard
                 });
             }
         } catch (error) {

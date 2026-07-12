@@ -202,7 +202,7 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, reply, sender }) => {
     try {
-        const isOwner = await require('../lib/isOwnerOrSudo')(sender);
+        const isOwner = await require('../lib/isOwner')(sender);
         if (!isOwner) {
             return await reply('❌ This is an owner-only command.');
         }

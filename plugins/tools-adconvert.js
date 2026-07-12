@@ -7,21 +7,13 @@ const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 const axios = require('axios');
+const { bytesToSize } = require('../lib/myfunc');
 
 // Set FFmpeg path
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-// Utility functions
 function getRandomString(length = 10) {
     return Math.random().toString(36).substring(2, length + 2);
-}
-
-function formatBytes(bytes) {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 // Download media function using Baileys
@@ -120,7 +112,7 @@ ademola({
             audio: voiceBuffer,
             mimetype: 'audio/ogg; codecs=opus',
             ptt: true,
-            caption: `🎤 *Voice Note Created*\n\n📁 *Original:* ${mediaType.toUpperCase()}\n💾 *Size:* ${formatBytes(buffer.length)}\n👤 *By:* @${sender.split('@')[0]}\n> © Powered by Ademola King`,
+            caption: `🎤 *Voice Note Created*\n\n📁 *Original:* ${mediaType.toUpperCase()}\n💾 *Size:* ${bytesToSize(buffer.length)}\n👤 *By:* @${sender.split('@')[0]}\n> © Powered by Ademola King`,
             mentions: [sender]
         }, { quoted: fakevCard });
 
@@ -197,7 +189,7 @@ ademola({
         await ademola.sendMessage(from, {
             audio: audioBuffer,
             mimetype: 'audio/mpeg',
-            caption: `🎵 *Audio File Created*\n\n📁 *Original:* ${mediaType.toUpperCase()}\n💾 *Size:* ${formatBytes(buffer.length)}\n👤 *By:* @${sender.split('@')[0]}\n> © Powered by Ademola King`,
+            caption: `🎵 *Audio File Created*\n\n📁 *Original:* ${mediaType.toUpperCase()}\n💾 *Size:* ${bytesToSize(buffer.length)}\n👤 *By:* @${sender.split('@')[0]}\n> © Powered by Ademola King`,
             mentions: [sender]
         }, { quoted: fakevCard });
 
@@ -267,7 +259,7 @@ ademola({
         await ademola.sendMessage(from, {
             video: videoBuffer,
             mimetype: 'video/mp4',
-            caption: `🎬 *Video Created from Audio*\n\n💾 *Size:* ${formatBytes(videoBuffer.length)}\n👤 *By:* @${sender.split('@')[0]}\n> © Powered by Ademola King`,
+            caption: `🎬 *Video Created from Audio*\n\n💾 *Size:* ${bytesToSize(videoBuffer.length)}\n👤 *By:* @${sender.split('@')[0]}\n> © Powered by Ademola King`,
             mentions: [sender]
         }, { quoted: fakevCard });
 
@@ -340,7 +332,7 @@ ademola({
             document: mp3Buffer,
             fileName: `converted_audio_${Date.now()}.mp3`,
             mimetype: 'audio/mpeg',
-            caption: `🎶 *MP3 File Created*\n\n💾 *Size:* ${formatBytes(mp3Buffer.length)}\n👤 *By:* @${sender.split('@')[0]}\n> © Powered by Ademola King`,
+            caption: `🎶 *MP3 File Created*\n\n💾 *Size:* ${bytesToSize(mp3Buffer.length)}\n👤 *By:* @${sender.split('@')[0]}\n> © Powered by Ademola King`,
             mentions: [sender]
         }, { quoted: fakevCard });
 

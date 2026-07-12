@@ -32,7 +32,7 @@ ademola({
         }
 
         // Check permissions (owner can always kick, admins need admin status)
-        const isOwner = mek.key.fromMe || (await require('../lib/isOwnerOrSudo')(sender));
+        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
         
         if (!isOwner) {
             const adminStatus = await isAdmin();

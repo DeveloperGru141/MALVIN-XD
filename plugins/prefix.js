@@ -166,33 +166,3 @@ ademola({
         console.error('Resetprefix command error:', error);
     }
 });
-/*
-// TEST COMMAND - Test if prefix is working
-ademola({
-    pattern: "testprefix",
-    alias: ["prefixtest"],
-    desc: "Test if prefix system is working",
-    category: "general",
-    react: "🧪",
-    filename: __filename
-}, async (ademola, mek, m, { from, reply }) => {
-    try {
-        const currentPrefix = getPrefix();
-        
-        let text = `🧪 *PREFIX TEST*\n\n`;
-        text += `• Current prefix: \`${currentPrefix}\`\n`;
-        text += `• Test command: ${currentPrefix}testprefix\n`;
-        text += `• Status: ✅ Working\n\n`;
-        text += `Try changing prefix with: ${currentPrefix}setprefix !`;
-        
-        await reply(text);
-        
-    } catch (error) {
-        await reply('❌ Prefix test failed: ' + error.message);
-        console.error('Testprefix command error:', error);
-    }
-});
-
-console.log('✅ Prefix system loaded successfully');
-
-*/

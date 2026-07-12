@@ -54,7 +54,7 @@ ademola({
     try {
         if (!isGroup) return await reply('❌ This command can only be used in groups!');
 
-        const isOwner = await require('../lib/isOwnerOrSudo')(sender);
+        const isOwner = await require('../lib/isOwner')(sender);
         if (!isOwner) return await reply('❌ Only bot owner can make the bot leave groups!');
 
         await reply('👋 Leaving the group...');
@@ -105,7 +105,7 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, q, reply, sender }) => {
     try {
-        const isOwner = await require('../lib/isOwnerOrSudo')(sender);
+        const isOwner = await require('../lib/isOwner')(sender);
         if (!isOwner) return await reply('❌ Only bot owner can use this command!');
 
         if (!q || !q.includes('chat.whatsapp.com')) {

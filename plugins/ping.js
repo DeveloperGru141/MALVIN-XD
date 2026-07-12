@@ -22,7 +22,7 @@ function formatTime(seconds) {
 
 ademola({
     pattern: "ping",
-    alias: ["speed", "status"],
+    alias: ["speed", "pingstatus"],
     desc: "Check bot response speed and status",
     category: "general",
     react: "🚀",

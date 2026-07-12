@@ -1,15 +1,7 @@
 const { ademola, fakevCard } = require("../ademola");
 const { File } = require("megajs");
 const mime = require("mime-types");
-
-// Utility function for file size formatting
-function formatBytes(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+const { bytesToSize } = require('../lib/myfunc');
 
 // ==================== MEGA DOWNLOADER ====================
 ademola({
@@ -42,7 +34,7 @@ ademola({
 
         const fileExtension = file.name.split('.').pop().toLowerCase();
         const mimeType = mime.lookup(fileExtension) || 'application/octet-stream';
-        const fileSize = formatBytes(file.size);
+        const fileSize = bytesToSize(file.size);
 
         // Show file info
         const fileInfo = `📥 *File Information*\n\n` +

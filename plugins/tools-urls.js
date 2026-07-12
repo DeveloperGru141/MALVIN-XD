@@ -1,4 +1,4 @@
-const { ademola, fakevCard } = require("../ademola");
+const { ademola } = require("../ademola");
 const axios = require('axios');
 
 ademola({

@@ -1,4 +1,4 @@
-const { ademola, fakevCard } = require("../ademola");
+const { ademola } = require("../ademola");
 const fs = require('fs');
 const path = require('path');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');

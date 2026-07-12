@@ -6,15 +6,7 @@ const path = require("path");
 const os = require("os");
 const { ademola, fakevCard } = require("../ademola");
 const { channelInfo } = require('../lib/messageConfig');
-
-// Utility function to format bytes
-function formatBytes(bytes) {
-  if (!bytes) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-}
+const { bytesToSize } = require('../lib/myfunc');
 
 const API_KEYS = [
   process.env.IMGBB_API_KEY_1,
@@ -107,7 +99,7 @@ ademola({
     const message = `
 *✅ ${type} Uploaded!*
 
-📁 *Size:* ${formatBytes(buffer.length)}
+📁 *Size:* ${bytesToSize(buffer.length)}
 🔗 *URL:* ${res.data}
 
 > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ-xᴅ
@@ -224,7 +216,7 @@ ademola({
     const message = `
 ✅ *IMAGE UPLOADED SUCCESSFULLY!*
 
-📂 *File Size:* ${formatBytes(buffer.length)}
+📂 *File Size:* ${bytesToSize(buffer.length)}
 🔗 *URL:* ${imageUrl}
 
 👤 *Uploaded by:* @${sender.split('@')[0]}

@@ -1,4 +1,4 @@
-const { ademola, fakevCard } = require("../ademola");
+const { ademola } = require("../ademola");
 const axios = require('axios');
 
 ademola({
@@ -19,22 +19,22 @@ ademola({
         if (!match) return await reply('❌ Invalid WhatsApp channel link!');
 
         const inviteId = match[1];
-        
+
+        let metadata = null;
         let channelId = null;
         let externalInfo = null;
 
-        // METHOD 1: Get Channel ID using direct Baileys API (for the ID)
+        // METHOD 1: Get Channel info using direct Baileys API
         try {
-            const metadata = await ademola.newsletterMetadata("invite", inviteId);
+            metadata = await ademola.newsletterMetadata("invite", inviteId);
             if (metadata?.id) {
                 channelId = metadata.id;
-                console.log('✅ Got Channel ID from direct API:', channelId);
             }
         } catch (error) {
             console.log('❌ Direct API failed for ID');
         }
 
-        // METHOD 2: Get detailed info from external API (for name, followers, description)
+        // METHOD 2: Get detailed info from external API (fallback for richer data)
         const nexoracleKey = process.env.NEXORACLE_API_KEY;
         if (nexoracleKey) {
             try {
@@ -43,79 +43,81 @@ ademola({
                 });
                 if (data?.result) {
                     externalInfo = data.result;
-                    console.log('✅ Got details from external API');
                 }
             } catch (error) {
                 console.log('❌ External API failed for details');
             }
         }
 
-        // If we have both, combine them
-        if (channelId && externalInfo) {
-            const { title, followers, description, image } = externalInfo;
-            
-            const infoText = `📡 *WhatsApp Channel Information*\n\n` +
-                            `🔖 *Channel ID:* ${channelId}\n` +
-                            `📛 *Name:* ${title || 'No name'}\n` +
-                            `👥 *Followers:* ${followers || 'Not available'}\n` +
-                            `📝 *Description:* ${description || 'No description'}\n` +
-                            `🔗 *Invite ID:* ${inviteId}\n\n` +
-                            `👤 *Requested by:* @${sender.split('@')[0]}\n` +
-                            `> © Powered by Ademola King`;
+        // Try metadata first (more reliable), fall back to external
+        if (metadata?.id) {
+            let creationDate = "Unknown";
+            if (metadata.creation_time) {
+                creationDate = new Date(metadata.creation_time * 1000).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+            }
 
-            if (image) {
+            const name = metadata.name || externalInfo?.title || 'No name';
+            const subscribers = metadata.subscribers?.toLocaleString() || externalInfo?.followers || 'Not available';
+            const description = metadata.description || externalInfo?.description || '';
+
+            const infoText = `📡 *WhatsApp Channel Information*\n\n` +
+                `🔖 *Channel ID:* ${metadata.id}\n` +
+                `📛 *Name:* ${name}\n` +
+                `👥 *Subscribers:* ${subscribers}\n` +
+                `${description ? `📝 *Description:* ${description}\n` : ''}` +
+                `📅 *Created:* ${creationDate}\n` +
+                `🔗 *Invite ID:* ${inviteId}\n\n` +
+                `👤 *Requested by:* @${sender.split('@')[0]}\n` +
+                `> © Powered by Ademola King`;
+
+            if (metadata.preview) {
                 await ademola.sendMessage(from, {
-                    image: { url: image },
+                    image: { url: `https://pps.whatsapp.net${metadata.preview}` },
                     caption: infoText,
                     mentions: [sender]
-                }, { quoted: fakevCard });
+                });
+            } else if (externalInfo?.image) {
+                await ademola.sendMessage(from, {
+                    image: { url: externalInfo.image },
+                    caption: infoText,
+                    mentions: [sender]
+                });
             } else {
                 await reply(infoText);
             }
-        }
-        // If only direct API worked (we have ID but no details)
-        else if (channelId) {
-            const infoText = `📡 *WhatsApp Channel Information*\n\n` +
-                            `🔖 *Channel ID:* ${channelId}\n` +
-                            `📛 *Name:* No name\n` +
-                            `👥 *Followers:* Not available\n` +
-                            `📝 *Description:* No description\n` +
-                            `🔗 *Invite ID:* ${inviteId}\n\n` +
-                            `👤 *Requested by:* @${sender.split('@')[0]}\n` +
-                            `> © Powered by Ademola King`;
-            
-            await reply(infoText);
-        }
-        // If only external API worked (we have details but no ID)
-        else if (externalInfo) {
+        } else if (externalInfo) {
             const { title, followers, description, image, newsletterJid } = externalInfo;
-            
+
             const infoText = `📡 *WhatsApp Channel Information*\n\n` +
-                            `🔖 *Channel ID:* ${newsletterJid || 'Not available'}\n` +
-                            `📛 *Name:* ${title || 'No name'}\n` +
-                            `👥 *Followers:* ${followers || 'Not available'}\n` +
-                            `📝 *Description:* ${description || 'No description'}\n` +
-                            `🔗 *Invite ID:* ${inviteId}\n\n` +
-                            `👤 *Requested by:* @${sender.split('@')[0]}\n` +
-                            `> © Powered by Ademola King`;
+                `🔖 *Channel ID:* ${newsletterJid || 'Not available'}\n` +
+                `📛 *Name:* ${title || 'No name'}\n` +
+                `👥 *Followers:* ${followers || 'Not available'}\n` +
+                `${description ? `📝 *Description:* ${description}\n` : ''}` +
+                `🔗 *Invite ID:* ${inviteId}\n\n` +
+                `👤 *Requested by:* @${sender.split('@')[0]}\n` +
+                `> © Powered by Ademola King`;
 
             if (image) {
                 await ademola.sendMessage(from, {
                     image: { url: image },
                     caption: infoText,
                     mentions: [sender]
-                }, { quoted: fakevCard });
+                });
             } else {
                 await reply(infoText);
             }
-        }
-        // If both failed
-        else {
-            await reply('❌ Failed to fetch channel information from both sources. The channel may be private or the link is invalid.');
+        } else {
+            await reply('❌ Failed to fetch channel information. The channel may be private, deleted, or the link is invalid.');
         }
 
     } catch (error) {
         console.error('Newsletter command error:', error);
-        await reply('❌ An unexpected error occurred while fetching channel information.');
+        if (error.message?.includes('newsletterMetadata')) {
+            await reply('❌ This bot version does not support newsletter features. Please update your Baileys version.');
+        } else {
+            await reply('❌ An unexpected error occurred while fetching channel information.');
+        }
     }
 });

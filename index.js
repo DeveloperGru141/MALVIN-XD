@@ -2,9 +2,7 @@ require('./settings')
 const { Boom } = require('@hapi/boom')
 const fs = require('fs')
 const chalk = require('chalk')
-const FileType = require('file-type')
 const path = require('path')
-const axios = require('axios')
 const PhoneNumber = require('awesome-phonenumber')
 const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = require('./lib/exif')
 const { smsg, isUrl, getBuffer, getSizeMedia, sleep, reSize } = require('./lib/myfunc')
@@ -27,8 +25,6 @@ const {
 const NodeCache = require("node-cache")
 const pino = require("pino")
 const readline = require("readline")
-const { parsePhoneNumber } = require("libphonenumber-js")
-const { PHONENUMBER_MCC } = require('@whiskeysockets/baileys/lib/Utils/generics')
 const { rmSync, existsSync } = require('fs')
 const { join } = require('path')
 
@@ -86,16 +82,6 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 console.log('🔧 Temp cleanup system initialized');
-
-const tinyCapsMap = {
-    a: 'ᴀ', b: 'ʙ', c: 'ᴄ', d: 'ᴅ', e: 'ᴇ', f: 'ғ', g: 'ɢ', h: 'ʜ', i: 'ɪ',
-    j: 'ᴊ', k: 'ᴋ', l: 'ʟ', m: 'ᴍ', n: 'ɴ', o: 'ᴏ', p: 'ᴘ', q: 'q', r: 'ʀ',
-    s: 's', t: 'ᴛ', u: 'ᴜ', v: 'ᴠ', w: 'ᴡ', x: 'x', y: 'ʏ', z: 'ᴢ'
-};
-
-const toTinyCaps = (str) => {
-    return str.split('').map((char) => tinyCapsMap[char.toLowerCase()] || char).join('');
-};
 
 store.readFromFile()
 const settings = require('./settings')
@@ -288,24 +274,13 @@ const NEWSLETTER_IDS = [
     "120363419136706156@newsletter"
 ];
 
-const newsletterJids = [
-    "120363402507750390@newsletter",
-    "120363405304938881@newsletter",
-    "120363420989526190@newsletter",
-    "120363419136706156@newsletter"
-];
+const newsletterJids = NEWSLETTER_IDS;
 const emojis = ["🎉", "🪀", "🎀", "💫"];
 
 const useMobile = process.argv.includes("--mobile")
 const useQr = process.argv.includes("--qr") || process.argv.includes("--use-qr")
 const requestPairing = !useQr
-const phoneNumber = process.env.OWNER_NUMBER || "2348108574293"
-
-setInterval(() => {
-    if (global.gc) {
-        global.gc()
-    }
-}, 60_000)
+const phoneNumber = null
 
 let restarting = false;
 setInterval(() => {
@@ -323,7 +298,12 @@ const question = (text) => {
     if (rl) {
         return new Promise((resolve) => rl.question(text, resolve))
     }
-    return Promise.resolve(phoneNumber)
+    // Fallback for non-TTY: read from stdin directly
+    return new Promise((resolve) => {
+        process.stdin.once('data', (data) => {
+            resolve(data.toString().trim())
+        })
+    })
 }
 
 async function downloadSessionData() {
@@ -437,13 +417,6 @@ async function followNewsletters(ademolaBot) {
                 message: error.message
             });
         }
-    }
-
-    if (followStatus.details.length > 0) {
-        followStatus.details.forEach(detail => {
-            const icon = detail.status === 'followed' ? '✅' :
-                detail.status === 'already_following' ? '📌' : '❌';
-        });
     }
 
     return followStatus;
@@ -802,33 +775,7 @@ async function startAdemolaXD() {
         return (withoutContact ? '' : v.name) || v.subject || v.verifiedName || PhoneNumber('+' + jid.replace('@s.whatsapp.net', '')).getNumber('international')
     }
 
-    ademolaBot.public = true
     ademolaBot.serializeM = (m) => smsg(ademolaBot, m, store)
-
-    if (requestPairing && !sessionLoaded) {
-        if (useMobile) throw new Error('Cannot use pairing code with mobile api')
-
-        let pairingPhoneNumber = phoneNumber || await question(chalk.bgBlack(chalk.greenBright(`Please type your WhatsApp number 😍\nFormat: 263714757857 (without + or spaces) : `)))
-
-        pairingPhoneNumber = pairingPhoneNumber.replace(/[^0-9]/g, '')
-        const pn = require('awesome-phonenumber');
-        if (!pn('+' + pairingPhoneNumber).isValid()) {
-            console.log(chalk.red('Invalid phone number. Please enter your full international number (e.g., 263714757857 for Zimbabwe, 447911123456 for UK, etc.) without + or spaces.'));
-            process.exit(1);
-        }
-
-        setTimeout(async () => {
-            try {
-                let code = await ademolaBot.requestPairingCode(pairingPhoneNumber)
-                code = code?.match(/.{1,4}/g)?.join("-") || code
-                console.log(chalk.black(chalk.bgGreen(`Your Pairing Code : `)), chalk.black(chalk.white(code)))
-                console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
-            } catch (error) {
-                console.error('Error requesting pairing code:', error)
-                console.log(chalk.red('Failed to get pairing code. Please check your phone number and try again.'))
-            }
-        }, 3000)
-    }
 
     const antiCallNotified = new Set();
     ademolaBot.ev.on('call', async (calls) => {
@@ -865,11 +812,43 @@ async function startAdemolaXD() {
         }
     });
 
+    let pairingCodeRequested = false
+
     ademolaBot.ev.on('connection.update', async (s) => {
         const { connection, lastDisconnect } = s
         if (connection == "open") {
             console.log(chalk.magenta(` `))
             console.log(chalk.bold.blue(`🤖 Connected to => ` + JSON.stringify(ademolaBot.user, null, 2)))
+
+            // If using pairing code and no user session yet, request pairing code
+            if (requestPairing && !ademolaBot.user && !pairingCodeRequested) {
+                pairingCodeRequested = true
+                if (useMobile) throw new Error('Cannot use pairing code with mobile api')
+
+                let pairingPhoneNumber = phoneNumber || process.env.OWNER_NUMBER || await question(chalk.bgBlack(chalk.greenBright(`Please type your WhatsApp number 😍\nFormat: 2348108574293 (without + or spaces) : `)))
+
+                pairingPhoneNumber = pairingPhoneNumber.replace(/[^0-9]/g, '')
+                const pn = require('awesome-phonenumber');
+                if (!pn('+' + pairingPhoneNumber).isValid()) {
+                    console.log(chalk.red('Invalid phone number. Please enter your full international number (e.g., 2348108574293 for Nigeria) without + or spaces.'));
+                    process.exit(1);
+                }
+
+                try {
+                    let code = await ademolaBot.requestPairingCode(pairingPhoneNumber)
+                    code = code?.match(/.{1,4}/g)?.join("-") || code
+                    console.log(chalk.black(chalk.bgGreen(`Your Pairing Code : `)), chalk.black(chalk.white(code)))
+                    console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
+                } catch (error) {
+                    console.error('Error requesting pairing code:', error)
+                    console.log(chalk.red('Failed to get pairing code. Please check your phone number and try again.'))
+                }
+                return
+            }
+
+            if (!ademolaBot.user) {
+                return
+            }
 
             const botUserJid = ademolaBot.user.id.split(':')[0] + '@s.whatsapp.net';
             global.ownerJid = botUserJid;
@@ -909,9 +888,7 @@ async function startAdemolaXD() {
             console.log(chalk.bold.blue(`
  ──[ 🤖 𝚆𝚎𝚕𝚌𝚘𝚖 𝙳𝚎𝚊𝚛 𝚄𝚜𝚎𝚛! ]─
 
- If you enjoy using this bot,
- please ⭐  Star it & 🍴  Fork it on GitHub!
- your support keeps it growing! 💙 
+ If you enjoy using this bot please thank ADEMOLA for making it possible😂😂 💙 
 
 `))
             console.log(chalk.bold.yellow(`< ================================== >`))

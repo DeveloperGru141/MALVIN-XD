@@ -5,7 +5,7 @@ const isAdmin = require('../lib/isAdmin');  // Import your existing isAdmin func
 
 ademola({
     pattern: "tagall",
-    alias: ["everyone", "mentionall", "alert"],
+    alias: ["tagall", "everyone2"],
     desc: "Tag all group members with optional custom message",
     category: "group",
     react: "📢",

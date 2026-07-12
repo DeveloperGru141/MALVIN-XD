@@ -5,10 +5,7 @@ const moment = require('moment-timezone');
 const { getPrefix } = require('../lib/prefix');
 const { loadSettings } = require('../lib/settingsManager');
 
-const toTinyCaps = (text) => {
-    const m = { a:'ᴀ',b:'ʙ',c:'ᴄ',d:'ᴅ',e:'ᴇ',f:'ғ',g:'ɢ',h:'ʜ',i:'ɪ',j:'ᴊ',k:'ᴋ',l:'ʟ',m:'ᴍ',n:'ɴ',o:'ᴏ',p:'ᴘ',q:'ǫ',r:'ʀ',s:'s',t:'ᴛ',u:'ᴜ',v:'ᴠ',w:'ᴡ',x:'x',y:'ʏ',z:'ᴢ' };
-    return text.toLowerCase().split('').map(c => m[c] || c).join('');
-};
+const { toTinyCaps } = require('../lib/tinyCaps');
 
 const fetchBotInfo = async () => {
     return { forks: '0', stars: '0', repo: '' };
