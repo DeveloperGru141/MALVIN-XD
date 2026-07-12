@@ -302,11 +302,15 @@ const question = (text) => {
 async function downloadSessionData() {
     try {
         await fs.promises.mkdir(SESSION_DIR, { recursive: true });
-        if (!fs.existsSync(CREDS_PATH)) {
-            if (!global.SESSION_ID) {
-                console.log(chalk.red('Session ID not found and creds.json missing! Falling back to pairing code...'));
-                return false;
+        if (!global.SESSION_ID) {
+            if (fs.existsSync(CREDS_PATH)) {
+                await fs.promises.unlink(CREDS_PATH);
+                console.log(chalk.yellow('Removed stale creds.json (no SESSION_ID set)'));
             }
+            console.log(chalk.red('Session ID not found! Falling back to pairing code...'));
+            return false;
+        }
+        if (!fs.existsSync(CREDS_PATH)) {
             const base64Data = global.SESSION_ID.split('starcore~')[1];
             if (!base64Data) throw new Error('Invalid SESSION_ID format');
             await fs.promises.writeFile(CREDS_PATH, Buffer.from(base64Data, 'base64'));
