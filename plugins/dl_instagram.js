@@ -7,6 +7,7 @@
 const { ademola, fakevCard } = require('../ademola');
 const { channelInfo } = require('../lib/messageConfig');
 const axios = require('axios');
+const cheerio = require('cheerio');
 
 // Store processed message IDs to prevent duplicates
 const processedMessages = new Set();
@@ -104,30 +105,56 @@ ademola({
         // Start ultra-fast loading animation
         const loadingAnimation = await sendIgLoading(ademola, from, "Fetching Instagram data");
 
-        const nexoracleKey = process.env.NEXORACLE_API_KEY;
-        if (!nexoracleKey) return await reply('❌ NEXORACLE_API_KEY not configured in .env');
-        const igRes = await axios.get(`https://api.nexoracle.com/downloader/ig?apikey=${nexoracleKey}&url=${encodeURIComponent(q)}`, { timeout: 20000 });
-        const downloadData = igRes.data;
-
         let mediaItems = [];
-        if (downloadData?.status === 200 && downloadData?.result?.data) {
-            mediaItems = downloadData.result.data;
-        } else if (downloadData?.data?.length) {
-            mediaItems = downloadData.data;
-        } else if (downloadData?.result?.length) {
-            mediaItems = downloadData.result;
-        } else {
+
+        try {
+            const igRes = await axios.get(q, {
+                timeout: 20000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept-Language': 'en-US,en;q=0.9'
+                }
+            });
+            const $ = cheerio.load(igRes.data);
+
+            const ogVideo = $('meta[property="og:video"]').attr('content') ||
+                $('meta[property="og:video:secure_url"]').attr('content');
+            const ogImage = $('meta[property="og:image"]').attr('content');
+
+            const initState = igRes.data.match(/window\.__INITIAL_STATE__\s*=\s*({.+?});/);
+            if (initState) {
+                try {
+                    const json = JSON.parse(initState[1]);
+                    const items = json?.shortcode_media?.display_resources ||
+                        json?.xdt_api__v1__media__shortcode__web_info?.items?.[0]?.carousel_media ||
+                        [json?.xdt_api__v1__media__shortcode__web_info?.items?.[0]];
+                    if (items) {
+                        const allMedia = Array.isArray(items) ? items : [items];
+                        for (const item of allMedia) {
+                            if (item?.video_url) mediaItems.push({ url: item.video_url, type: 'video' });
+                            else if (item?.display_url) mediaItems.push({ url: item.display_url, type: 'image' });
+                        }
+                    }
+                } catch (e) { console.log('IG JSON parse error:', e.message); }
+            }
+
+            if (mediaItems.length === 0 && ogVideo) {
+                mediaItems.push({ url: ogVideo, type: 'video' });
+            }
+            if (mediaItems.length === 0 && ogImage) {
+                mediaItems.push({ url: ogImage, type: 'image' });
+            }
+        } catch (err) {
+            console.log('Instagram scraping failed:', err.message);
+        }
+
+        if (mediaItems.length === 0) {
             loadingAnimation.stop();
             return await reply(`❌ *No media found!*\n\nPossible reasons:\n• Post is private\n• Link is invalid\n• Account is private\n• Post was deleted\n\nPlease check the URL and try again.`);
         }
 
-        const uniqueMedia = extractUniqueMedia(mediaItems.map(m => typeof m === 'string' ? { url: m } : m));
+        const uniqueMedia = extractUniqueMedia(mediaItems);
         const mediaToDownload = uniqueMedia.slice(0, 10);
-
-        if (mediaToDownload.length === 0) {
-            loadingAnimation.stop();
-            return await reply(`❌ *No valid media found!*\n\nThe service couldn't extract any media from this post.`);
-        }
 
         loadingAnimation.stop();
 

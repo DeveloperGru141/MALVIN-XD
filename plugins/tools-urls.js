@@ -1,10 +1,10 @@
-const { ademola } = require("../ademola");
+const { ademola, fakevCard } = require("../ademola");
 const axios = require('axios');
 
 ademola({
-    pattern: "abellashort",
-    alias: ['shortabella', 'abellaurl', 'urlshort'],
-    desc: "Shorten URLs using Abella shortener service",
+    pattern: "urlshort",
+    alias: ['shorturl', 'shorten', 'shrtr'],
+    desc: "Shorten URLs using Shrtr shortener service",
     category: "tools",
     react: "🔗",
     use: ".abellashort <url>",
@@ -21,27 +21,26 @@ ademola({
             return await reply('❌ Please provide a valid URL starting with http:// or https://');
         }
 
-        // Send processing message
-        await reply('🔄 Processing your URL...');
+        await reply('🔄 Shortening your URL...');
 
         const { data } = await axios.post(
-            'https://short.abella.icu/api/shorten',
+            'https://shrtr.top/api/v1/shorten',
             { url: q },
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36',
-                    'Referer': 'https://short.abella.icu/'
+                    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36'
                 },
                 timeout: 10000
             }
         );
 
-        if (!data.shortUrl) {
+        const shortUrl = data?.short_url || data?.shortUrl || data?.url || data?.result;
+        if (!shortUrl) {
             return await reply('❌ Sorry, the URL shortener service returned an invalid response.');
         }
 
-        await reply(`🔗 *URL Shortened Successfully*\n\n📎 *Original URL:*\n${q}\n\n🔗 *Shortened URL:*\n${data.shortUrl}\n\n_Shortened using Abella service_`);
+        await reply(`🔗 *URL Shortened Successfully*\n\n📎 *Original URL:*\n${q}\n\n🔗 *Shortened URL:*\n${shortUrl}\n\n_Shortened using Shrtr service_`);
 
     } catch (error) {
         console.error('Abella Short error:', error);

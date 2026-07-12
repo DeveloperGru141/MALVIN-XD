@@ -1,6 +1,28 @@
 const { ademola, fakevCard } = require('../ademola');
 const axios = require('axios');
 
+async function takeScreenshot(url) {
+  const services = [
+    `https://api.miniature.io/?url=${encodeURIComponent(url)}&width=1280&height=720`,
+    `https://image.thum.io/get/width/1280/crop/720/${encodeURIComponent(url)}`,
+    `https://api.screenshotlayer.com/api/capture?access_key=${process.env.SCREENSHOTLAYER_API_KEY || 'free'}&url=${encodeURIComponent(url)}&viewport=1280x720`
+  ];
+
+  for (const serviceUrl of services) {
+    try {
+      const res = await axios.get(serviceUrl, {
+        responseType: 'arraybuffer',
+        timeout: 20000,
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+      });
+      if (res.data && res.data.length > 1000) return Buffer.from(res.data);
+    } catch (e) {
+      console.log(`Screenshot service failed:`, e.message);
+    }
+  }
+  return null;
+}
+
 ademola({
     pattern: "ss",
     alias: ["ssweb", "screenshot"],
@@ -21,29 +43,19 @@ ademola({
 
         await reply(`📸 Taking screenshot of: ${q}`);
 
-        const apiUrl = `https://api.nexoracle.com/tools/ssweb?apikey=${process.env.NEXORACLE_API_KEY || ''}&url=${encodeURIComponent(q)}&device=desktop`;
-        const response = await axios.get(apiUrl, {
-            responseType: 'arraybuffer',
-            timeout: 30000
-        });
+        const imageBuffer = await takeScreenshot(q);
 
-        if (!response.data) {
-            return await reply('❌ Failed to take screenshot. Website might be blocking screenshots.');
+        if (!imageBuffer) {
+            return await reply('❌ Failed to take screenshot. All screenshot services are unavailable.');
         }
 
         await ademola.sendMessage(from, {
-            image: Buffer.from(response.data),
+            image: imageBuffer,
             caption: `📸 ${q}\n\nPowered by Ademola Tech`
-        }, {
-            quoted: fakevCard
-        });
+        }, { quoted: fakevCard });
 
     } catch (error) {
         console.error('Screenshot error:', error);
-        if (error.response?.status === 403) {
-            await reply('❌ Website denied screenshot access.');
-        } else {
-            await reply('❌ Failed to take screenshot. Try again later.');
-        }
+        await reply('❌ Failed to take screenshot. Try again later.');
     }
 });

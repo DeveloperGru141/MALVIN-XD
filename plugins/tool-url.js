@@ -1,4 +1,4 @@
-const { downloadContentFromMessage } = require("@whiskeysockets/baileys");
+﻿const { downloadContentFromMessage } = require("@whiskeysockets/baileys");
 const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
@@ -6,7 +6,15 @@ const path = require("path");
 const os = require("os");
 const { ademola, fakevCard } = require("../ademola");
 const { channelInfo } = require('../lib/messageConfig');
-const { bytesToSize } = require('../lib/myfunc');
+
+// Utility function to format bytes
+function formatBytes(bytes) {
+  if (!bytes) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+}
 
 const API_KEYS = [
   process.env.IMGBB_API_KEY_1,
@@ -99,7 +107,7 @@ ademola({
     const message = `
 *✅ ${type} Uploaded!*
 
-📁 *Size:* ${bytesToSize(buffer.length)}
+📁 *Size:* ${formatBytes(buffer.length)}
 🔗 *URL:* ${res.data}
 
 > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ-xᴅ
@@ -121,13 +129,14 @@ ademola({
       tmpFiles.forEach(file => {
         try {
           fs.unlinkSync(path.join(os.tmpdir(), file));
-        } catch (e) {}
+        } catch (e) { console.error('Cleanup error:', e); }
       });
-    } catch (cleanupError) {}
+    } catch (cleanupError) { console.error('Cleanup error:', cleanupError); }
     
     await reply(`❌ ${error.message || error}`);
   }
 });
+
 
 ademola({
   pattern: "tourl",
@@ -207,7 +216,7 @@ ademola({
     // Clean up temp file
     try {
       fs.unlinkSync(filePath);
-    } catch (e) {}
+    } catch (e) { console.error('Cleanup error:', e); }
 
     if (!imageUrl) {
       throw new Error(lastError?.message || "All ImgBB API keys failed");
@@ -216,7 +225,7 @@ ademola({
     const message = `
 ✅ *IMAGE UPLOADED SUCCESSFULLY!*
 
-📂 *File Size:* ${bytesToSize(buffer.length)}
+📂 *File Size:* ${formatBytes(buffer.length)}
 🔗 *URL:* ${imageUrl}
 
 👤 *Uploaded by:* @${sender.split('@')[0]}
@@ -239,9 +248,9 @@ ademola({
       tmpFiles.forEach(file => {
         try {
           fs.unlinkSync(path.join(os.tmpdir(), file));
-        } catch (e) {}
+        } catch (e) { console.error('Cleanup error:', e); }
       });
-    } catch (cleanupError) {}
+    } catch (cleanupError) { console.error('Cleanup error:', cleanupError); }
     
     reply(`❌ Error: ${error.message || error}`);
   }
@@ -312,23 +321,39 @@ ademola({
 
     const docUrl = catboxRes.data;
     
-    // Analyze with AI
-    const encodedQ = encodeURIComponent(question);
-    const encodedUrl = encodeURIComponent(docUrl);
-    
     let aiResponse;
 
     try {
-      const pollRes = await axios.get(`https://text.pollinations.ai/${encodeURIComponent(`Document URL: ${docUrl}\n\nQuestion: ${question}\n\nPlease analyze this document based on its URL. If you cannot access the URL directly, provide general guidance based on the question.`)}?model=openai&system=${encodeURIComponent('You are a document analysis AI. Provide helpful analysis based on the question asked.')}`, {
-        timeout: 45000
-      });
-      aiResponse = typeof pollRes.data === 'string' ? pollRes.data.trim() : 'Analysis completed.';
+      const { data } = await axios.post('https://text.pollinations.ai/', {
+        messages: [
+          { role: 'system', content: 'You are a document analysis AI. Analyze documents and answer questions about them. Be concise and accurate.' },
+          { role: 'user', content: `Document URL: ${docUrl}\n\nQuestion: ${question}` }
+        ],
+        model: 'openai'
+      }, { timeout: 30000 });
+      aiResponse = data?.choices?.[0]?.message?.content || (typeof data === 'string' ? data.trim() : 'Analysis completed.');
     } catch {
       try {
-        const mistralRes = await axios.get(`https://text.pollinations.ai/${encodeURIComponent(`Document: ${docUrl}\nQ: ${question}\n\nAnalyze:`)}?model=mistral`, { timeout: 30000 });
-        aiResponse = typeof mistralRes.data === 'string' ? mistralRes.data.trim() : 'Analysis completed.';
+        const { data: mistralData } = await axios.post('https://text.pollinations.ai/', {
+          messages: [{ role: 'user', content: `Document: ${docUrl}\nQ: ${question}\n\nAnalyze:` }],
+          model: 'mistral'
+        }, { timeout: 30000 });
+        aiResponse = mistralData?.choices?.[0]?.message?.content || (typeof mistralData === 'string' ? mistralData.trim() : 'Analysis completed.');
       } catch {
-        aiResponse = `Document uploaded to ${docUrl}\n\nQuestion: ${question}\n\nI was unable to analyze the document content directly. Please try asking a more specific question.`;
+        try {
+          const hfToken = process.env.HUGGINGFACE_API_KEY || '';
+          const headers = { 'Content-Type': 'application/json' };
+          if (hfToken) headers['Authorization'] = `Bearer ${hfToken}`;
+          const { data: hfData } = await axios.post(
+            'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3',
+            { inputs: `[INST] Document URL: ${docUrl}\n\nQuestion: ${question}\n\nAnalyze this document: [/INST]` },
+            { headers, timeout: 45000 }
+          );
+          aiResponse = Array.isArray(hfData) ? hfData[0]?.generated_text?.trim() :
+            hfData?.generated_text?.trim() || 'Analysis completed.';
+        } catch {
+          aiResponse = `Document uploaded to ${docUrl}\n\nQuestion: ${question}\n\nI was unable to analyze the document content directly. Please try asking a more specific question.`;
+        }
       }
     }
 
@@ -362,9 +387,9 @@ ${aiResponse}
       tmpFiles.forEach(file => {
         try {
           fs.unlinkSync(path.join(os.tmpdir(), file));
-        } catch (e) {}
+        } catch (e) { console.error('Cleanup error:', e); }
       });
-    } catch (cleanupError) {}
+    } catch (cleanupError) { console.error('Cleanup error:', cleanupError); }
     
     reply(`❌ ${error.message || error}`);
   }

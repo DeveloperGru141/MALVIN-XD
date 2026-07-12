@@ -1,5 +1,43 @@
 const { ademola, fakevCard } = require('../ademola');
 const axios = require('axios');
+const cheerio = require('cheerio');
+
+async function scrapeMediafire(url) {
+  const res = await axios.get(url, {
+    timeout: 15000,
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+  });
+  const $ = cheerio.load(res.data);
+
+  const downloadUrl = $('#downloadButton').attr('href') ||
+    $('.download_link a[href*="download"]').attr('href') ||
+    $('a[aria-label="Download file"]').attr('href') ||
+    $('a#downloadButton').attr('href') ||
+    $('a.btn[href*="mediafire.com"]').attr('href');
+
+  const filename =
+    $('#filename').text().trim() ||
+    $('.filename').text().trim() ||
+    $('h1[itemprop="name"]').text().trim() ||
+    $('.dl-file-name').text().trim() ||
+    $('.file-name').text().trim() ||
+    url.split('/').pop() || 'file';
+
+  const fileSize =
+    $('.file-size').text().trim() ||
+    $('#filesize').text().trim() ||
+    $('span[aria-label*="size" i]').text().trim() ||
+    $('.dl-file-size').text().trim() ||
+    '';
+
+  const uploaded =
+    $('.uploaded-date').text().trim() ||
+    $('#uploaded').text().trim() ||
+    $('.dl-uploaded').text().trim() ||
+    '';
+
+  return { downloadUrl, filename, fileSize, uploaded };
+}
 
 ademola({
     pattern: "mediafire",
@@ -17,28 +55,13 @@ ademola({
 
     await ademola.sendMessage(from, { react: { text: '⏳', key: mek.key } });
 
-    const encodedUrl = encodeURIComponent(q);
-    const apiUrl = `https://api.nexoracle.com/downloader/mediafire?apikey=${process.env.NEXORACLE_API_KEY || ''}&url=${encodedUrl}`;
-    
-    const response = await axios.get(apiUrl);
-    const data = response.data;
+    const { downloadUrl, filename, fileSize, uploaded } = await scrapeMediafire(q);
 
-    if (!data.status || !data.result) {
+    if (!downloadUrl) {
       return reply('❌ *Failed to fetch file information.*\n\nPlease check the URL and try again.');
     }
 
-    const fileInfo = data.result;
-    const filename = fileInfo.filename || fileInfo.name;
-    const filesize = fileInfo.filesize || fileInfo.size;
-    const mimetype = fileInfo.mimetype || fileInfo.type;
-    const uploaded = fileInfo.uploaded || fileInfo.date;
-    const downloadUrl = fileInfo.download_url || fileInfo.link;
-
-    if (!downloadUrl) {
-      return reply('❌ *Download link not available.*\n\nThe file may be removed or inaccessible.');
-    }
-
-    const infoMessage = `📁 *MediaFire Download*\n\n📄 *Filename:* ${filename}\n📦 *Size:* ${filesize}\n📅 *Uploaded:* ${uploaded || 'N/A'}\n📋 *Type:* ${mimetype || 'N/A'}\n\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
+    const infoMessage = `📁 *MediaFire Download*\n\n📄 *Filename:* ${filename}\n📦 *Size:* ${fileSize || 'N/A'}\n📅 *Uploaded:* ${uploaded || 'N/A'}\n\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
     await ademola.sendMessage(from, { 
       text: infoMessage,
@@ -50,8 +73,7 @@ ademola({
     await ademola.sendMessage(from, {
       document: { url: downloadUrl },
       fileName: filename,
-      mimetype: mimetype,
-      caption: `📁 ${filename}\n📦 ${filesize}\n👤 @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`,
+      caption: `📁 ${filename}\n📦 ${fileSize || 'N/A'}\n👤 @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`,
       mentions: [sender]
     }, { quoted: fakevCard });
 
@@ -71,6 +93,44 @@ ademola({
   }
 });
 
+function extractGdriveId(url) {
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                url.match(/id=([a-zA-Z0-9_-]+)/) ||
+                url.match(/\/folders?\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
+
+async function getGdriveDirectUrl(fileId) {
+  const res = await axios.get(`https://drive.google.com/uc?export=download&id=${fileId}`, {
+    timeout: 15000,
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+    maxRedirects: 5,
+    validateStatus: s => s < 400
+  });
+
+  if (res.data && typeof res.data === 'string' && res.data.includes('confirm=')) {
+    const $ = cheerio.load(res.data);
+    const confirmToken = $('input[name="confirm"]').val();
+    if (confirmToken) {
+      return `https://drive.google.com/uc?export=download&confirm=${confirmToken}&id=${fileId}`;
+    }
+  }
+
+  const finalUrl = res.request?.res?.responseUrl ||
+    `https://drive.google.com/uc?export=download&id=${fileId}`;
+
+  return finalUrl;
+}
+
+function getGdriveFileName(res) {
+  const disposition = res.headers?.['content-disposition'];
+  if (disposition) {
+    const match = disposition.match(/filename\*?=(?:UTF-8'')?([^;\n]+)/i);
+    if (match) return decodeURIComponent(match[1].replace(/"/g, ''));
+  }
+  return 'gdrive_file';
+}
+
 ademola({
   pattern: "gdrive",
   alias: ["gdrivedownload", "gdownloader"],
@@ -87,38 +147,38 @@ ademola({
 
     await ademola.sendMessage(from, { react: { text: '⏳', key: mek.key } });
 
-    const apiUrl = `https://api.nexoracle.com/downloader/gdrive`;
-    const params = {
-      apikey: process.env.NEXORACLE_API_KEY || '',
-      url: q,
-    };
-
-    const response = await axios.get(apiUrl, { params });
-
-    if (!response.data || response.data.status !== 200 || !response.data.result) {
-      return reply('❌ *Unable to fetch the file. Please check the URL and try again.*');
+    const fileId = extractGdriveId(q);
+    if (!fileId) {
+      return reply('❌ *Could not extract file ID from URL.*');
     }
 
-    const { downloadUrl, fileName, fileSize, mimetype } = response.data.result;
+    const directUrl = await getGdriveDirectUrl(fileId);
 
-    await reply(`📥 *Downloading ${fileName} (${fileSize})... Please wait.*`);
+    await reply('📥 *Downloading file... Please wait.*');
 
-    const fileResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
+    const fileResponse = await axios.get(directUrl, {
+      responseType: 'arraybuffer',
+      timeout: 60000,
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+    });
     if (!fileResponse.data) {
       return reply('❌ *Failed to download the file. Please try again later.*');
     }
 
-    const fileBuffer = Buffer.from(fileResponse.data, 'binary');
+    const fileBuffer = Buffer.from(fileResponse.data);
+    const fileName = getGdriveFileName(fileResponse);
+    const mimetype = fileResponse.headers?.['content-type'] || 'application/octet-stream';
+    const fileSize = (fileBuffer.length / 1024 / 1024).toFixed(2) + ' MB';
 
     const caption = `📥 *File Details*\n\n🔖 *Name:* ${fileName}\n📏 *Size:* ${fileSize}\n👤 *Requested by:* @${sender.split('@')[0]}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
-    if (mimetype.startsWith('image')) {
+    if (mimetype.startsWith('image/')) {
       await ademola.sendMessage(from, {
         image: fileBuffer,
         caption: caption,
         mentions: [sender]
       }, { quoted: fakevCard });
-    } else if (mimetype.startsWith('video')) {
+    } else if (mimetype.startsWith('video/')) {
       await ademola.sendMessage(from, {
         video: fileBuffer,
         caption: caption,
@@ -144,6 +204,35 @@ ademola({
 
 
 
+async function scrapeTwitsave(twitterUrl) {
+  const res = await axios.get(`https://twitsave.com/info?url=${encodeURIComponent(twitterUrl)}`, {
+    timeout: 15000,
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+  });
+  const $ = cheerio.load(res.data);
+
+  const text = $('p[class*="lead"]').text().trim() || $('.tweet-text').text().trim() || '';
+  const thumb = $('img[src*="twimg"]').first().attr('src') ||
+    $('img[src*="pbs.twimg"]').first().attr('src') || '';
+  const videoUrls = [];
+  $('a[href*="twitsave.com/download"]').each((i, el) => {
+    const href = $(el).attr('href');
+    const label = $(el).text().trim().toLowerCase();
+    if (href) {
+      videoUrls.push({ url: href, hd: label.includes('hd') || label.includes('720') || label.includes('1080') });
+    }
+  });
+
+  let sd, hd;
+  for (const v of videoUrls) {
+    if (v.hd && !hd) hd = v.url;
+    else if (!sd) sd = v.url;
+  }
+  if (!hd) hd = sd;
+
+  return { desc: text, thumb, sd, hd };
+}
+
 ademola({
     pattern: 'twitter',
     alias: ['tweet', 'twdl', 'twitterdl'],
@@ -160,24 +249,15 @@ ademola({
 
         await ademola.sendMessage(from, { react: { text: '⏳', key: mek.key } });
 
-        const nexoracleKey = process.env.NEXORACLE_API_KEY || '';
-        const nexRes = await axios.get(`https://api.nexoracle.com/downloader/twitter?apikey=${nexoracleKey}&url=${encodeURIComponent(q)}`, { timeout: 10000 });
-        const data = nexRes.data;
-
-        if (!data?.result) {
+        const data = await scrapeTwitsave(q);
+        if (!data.sd) {
             return reply('❌ *Failed to fetch Twitter video*');
         }
-
-        const result = data.result;
-        const desc = result.desc || result.text || result.title || 'No description';
-        const thumb = result.thumb || result.thumbnail || result.image;
-        const video_sd = result.video_sd || result.video || result.url_sd || result.sd;
-        const video_hd = result.video_hd || result.video_hd || result.url_hd || result.hd || video_sd;
 
         const caption = `
 📹 *Twitter Video Download*
 
-📝 *Description:* ${desc}
+📝 *Description:* ${data.desc || 'No description'}
 🎥 *Quality Options:*
   1️⃣ SD Quality 📼
   2️⃣ HD Quality 🌟
@@ -188,14 +268,14 @@ ademola({
 > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
         const sentMsg = await ademola.sendMessage(from, {
-            image: { url: thumb },
+            image: { url: data.thumb },
             caption: caption,
             mentions: [sender]
         }, { quoted: fakevCard });
 
         const videoData = {
-            sd: video_sd,
-            hd: video_hd,
+            sd: data.sd,
+            hd: data.hd || data.sd,
             timestamp: Date.now()
         };
 
@@ -261,7 +341,7 @@ ademola({
             if (pixRes.data?.hits?.length) {
                 images = pixRes.data.hits.map(h => ({ url: h.largeImageURL || h.webformatURL }));
             }
-        } catch {}
+            } catch (e) { console.error('[plugin] error:', e); }
 
         if (!images) {
             try {
@@ -270,7 +350,7 @@ ademola({
                 if (unsplashRes.data?.results?.length) {
                     images = unsplashRes.data.results.map(h => ({ url: h.urls?.regular || h.urls?.small }));
                 }
-            } catch {}
+            } catch (e) { console.error('[plugin] error:', e); }
         }
 
         if (!images || images.length === 0) {

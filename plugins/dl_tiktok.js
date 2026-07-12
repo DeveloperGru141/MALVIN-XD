@@ -23,9 +23,8 @@ ademola({
 
     let data;
     const apis = [
-      `https://api.tikwm.com/?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
       `https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}`,
-      `https://api.tiktokdownload.me/?url=${encodeURIComponent(tiktokUrl)}`
+      `https://api.tikwm.com/?url=${encodeURIComponent(tiktokUrl)}&hd=1`
     ];
     for (let apiUrl of apis) {
       try {

@@ -1,14 +1,11 @@
-//---------------------------------------------
-//           ADEMOLA-XD SPOTIFY DOWNLOADER
-//---------------------------------------------
-
 const { ademola, fakevCard } = require('../ademola');
-const axios = require('axios');
+const yts = require('yt-search');
+const ytdl = require('ytdl-core');
 
 ademola({
     pattern: "spotify",
     alias: ["spotifydl", "spoti"],
-    desc: "Download songs from Spotify",
+    desc: "Download songs from Spotify (via YouTube)",
     category: "download",
     react: "🎵",
     use: ".spotify <song/artist>",
@@ -19,63 +16,38 @@ ademola({
             return await reply(`🎵 *SPOTIFY DOWNLOADER*\n\n❌ Please provide a song name or artist.\n\n*Examples:*\n.spotify Shape of You\n.spotify Ed Sheeran`);
         }
 
-        await reply('_🔍 Searching Spotify..._');
+        await reply('_🔍 Searching YouTube for your track..._');
 
-        const searchRes = await axios.get(`https://api.fabdl.com/spotify/search?q=${encodeURIComponent(q)}`, {
-            timeout: 15000
-        });
-
-        const tracks = searchRes.data?.result;
-        if (!tracks || tracks.length === 0) {
+        const searchResults = await yts(`${q} audio`);
+        const videos = searchResults.videos;
+        if (!videos || videos.length === 0) {
             return await reply('❌ No results found. Try a different search.');
         }
 
-        const track = tracks[0];
-        const trackId = track.id;
-        const title = track.name || track.title || 'Unknown';
-        const artist = track.artists || 'Unknown';
+        const video = videos[0];
+        const title = video.title;
+        const duration = video.duration.timestamp;
+        const artist = video.author?.name || 'Unknown';
 
-        await reply(`_🎵 Found: ${title} - ${artist}\n📥 Downloading..._`);
+        await reply(`_🎵 Found: ${title} - ${artist} (${duration})\n📥 Downloading audio..._`);
 
-        const dlRes = await axios.get(`https://api.fabdl.com/spotify/mp3-convert-task/${trackId}`, {
-            timeout: 15000
-        });
-
-        const taskId = dlRes.data?.result?.tid || dlRes.data?.tid;
-        if (!taskId) {
-            return await reply('❌ Failed to get download link.');
-        }
-
-        // Wait for conversion
-        await new Promise(r => setTimeout(r, 3000));
-
-        const convertRes = await axios.get(`https://api.fabdl.com/spotify/mp3-convert-progress/${taskId}`, {
-            timeout: 15000
-        });
-
-        const downloadUrl = convertRes.data?.result?.download_url || convertRes.data?.download_url;
-        if (!downloadUrl) {
-            return await reply('❌ Conversion failed. Try again.');
-        }
-
-        const fullUrl = `https://api.fabdl.com${downloadUrl}`;
-        const imageUrl = track.image || track.album_art;
-
-        const songInfo = `🎵 *${title}*\n👤 *Artist:* ${artist}\n\n⬇️ *Downloading audio...*`;
-
-        if (imageUrl) {
+        if (video.thumbnail) {
             await ademola.sendMessage(from, {
-                image: { url: imageUrl },
-                caption: songInfo
+                image: { url: video.thumbnail },
+                caption: `🎵 *${title}*\n👤 *Artist:* ${artist}\n⏱ *Duration:* ${duration}\n\n⬇️ *Downloading audio...*`
             }, { quoted: fakevCard });
-        } else {
-            await reply(songInfo);
+        }
+
+        const info = await ytdl.getInfo(video.url);
+        const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+        if (!format || !format.url) {
+            return await reply('❌ Failed to get audio stream.');
         }
 
         const fileName = `${title.replace(/[\\/:*?"<>|]/g, '_')}.mp3`;
 
         await ademola.sendMessage(from, {
-            audio: { url: fullUrl },
+            audio: { url: format.url },
             mimetype: 'audio/mpeg',
             fileName: fileName
         }, { quoted: fakevCard });
@@ -83,8 +55,8 @@ ademola({
         await reply(`✅ *Download Complete!*\n\n📁 ${fileName}\n🎵 Enjoy!`);
 
     } catch (error) {
-        console.error('❌ Spotify error:', error);
-        await reply(`❌ Failed to download from Spotify.\n\nError: ${error.message}\n\nTry a different search or try again later.`);
+        console.error('❌ Song download error:', error);
+        await reply(`❌ Failed to download.\n\nError: ${error.message}\n\nTry a different search or try again later.`);
     }
 });
 

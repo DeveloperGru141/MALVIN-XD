@@ -805,7 +805,30 @@ async function startAdemolaXD() {
         }
     });
 
-    let pairingCodeRequested = false
+    if (requestPairing && !sessionLoaded) {
+        if (useMobile) throw new Error('Cannot use pairing code with mobile api')
+
+        setTimeout(async () => {
+            try {
+                let pairingPhoneNumber = phoneNumber || process.env.OWNER_NUMBER
+
+                pairingPhoneNumber = pairingPhoneNumber.replace(/[^0-9]/g, '')
+                const pn = require('awesome-phonenumber');
+                if (!pn('+' + pairingPhoneNumber).isValid()) {
+                    console.log(chalk.red('Invalid phone number. Please check your OWNER_NUMBER in .env'));
+                    return;
+                }
+
+                let code = await ademolaBot.requestPairingCode(pairingPhoneNumber)
+                code = code?.match(/.{1,4}/g)?.join("-") || code
+                console.log(chalk.black(chalk.bgGreen(`Your Pairing Code : `)), chalk.black(chalk.white(code)))
+                console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
+            } catch (error) {
+                console.error('Error requesting pairing code:', error)
+                console.log(chalk.red('Failed to get pairing code.'))
+            }
+        }, 3000)
+    }
 
     ademolaBot.ev.on('connection.update', async (s) => {
         const { connection, lastDisconnect } = s
@@ -813,35 +836,7 @@ async function startAdemolaXD() {
             console.log(chalk.magenta(` `))
             console.log(chalk.bold.blue(`🤖 Connected to => ` + JSON.stringify(ademolaBot.user, null, 2)))
 
-            // If using pairing code and no user session yet, request pairing code
-            if (requestPairing && !ademolaBot.user && !pairingCodeRequested) {
-                pairingCodeRequested = true
-                if (useMobile) throw new Error('Cannot use pairing code with mobile api')
-
-                let pairingPhoneNumber = phoneNumber || process.env.OWNER_NUMBER || await question(chalk.bgBlack(chalk.greenBright(`Please type your WhatsApp number 😍\nFormat: 2348108574293 (without + or spaces) : `)))
-
-                pairingPhoneNumber = pairingPhoneNumber.replace(/[^0-9]/g, '')
-                const pn = require('awesome-phonenumber');
-                if (!pn('+' + pairingPhoneNumber).isValid()) {
-                    console.log(chalk.red('Invalid phone number. Please enter your full international number (e.g., 2348108574293 for Nigeria) without + or spaces.'));
-                    process.exit(1);
-                }
-
-                try {
-                    let code = await ademolaBot.requestPairingCode(pairingPhoneNumber)
-                    code = code?.match(/.{1,4}/g)?.join("-") || code
-                    console.log(chalk.black(chalk.bgGreen(`Your Pairing Code : `)), chalk.black(chalk.white(code)))
-                    console.log(chalk.yellow(`\nPlease enter this code in your WhatsApp app:\n1. Open WhatsApp\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the code shown above`))
-                } catch (error) {
-                    console.error('Error requesting pairing code:', error)
-                    console.log(chalk.red('Failed to get pairing code. Please check your phone number and try again.'))
-                }
-                return
-            }
-
-            if (!ademolaBot.user) {
-                return
-            }
+            if (!ademolaBot.user) return
 
             const botUserJid = ademolaBot.user.id.split(':')[0] + '@s.whatsapp.net';
             global.ownerJid = botUserJid;

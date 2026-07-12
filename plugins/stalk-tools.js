@@ -1,5 +1,6 @@
 const { ademola, fakevCard } = require("../ademola");
 const axios = require('axios');
+const cheerio = require('cheerio');
 const ytSearch = require('yt-search');
 
 ademola({
@@ -16,60 +17,50 @@ ademola({
             return await reply(`📢 *WhatsApp Channel Stalk*\n\nUsage: .wastalk <channel-url>\nExample: .wastalk https://whatsapp.com/channel/...`);
         }
 
-        // Validate WhatsApp channel URL format
-        if (!q.includes('whatsapp.com/channel/')) {
+        const match = q.match(/whatsapp\.com\/channel\/([\w-]+)/);
+        if (!match) {
             return await reply('❌ Please provide a valid WhatsApp channel URL containing "whatsapp.com/channel/"');
         }
 
+        const inviteId = match[1];
         await reply('🔄 Fetching channel information...');
 
-        const url = encodeURIComponent(q);
-        const nexoracleKey = process.env.NEXORACLE_API_KEY;
-        if (!nexoracleKey) return await reply('❌ NEXORACLE_API_KEY not configured in .env');
-        const { data } = await axios.get(`https://api.nexoracle.com/stalking/whatsapp-channel?apikey=${nexoracleKey}&url=${url}`, {
-            timeout: 15000
-        });
-        
-        if (!data.result || data.status !== 200) {
+        const metadata = await ademola.newsletterMetadata("invite", inviteId);
+        if (!metadata?.id) {
             return await reply('❌ Invalid channel URL or channel not found. Please check the URL and try again.');
         }
 
-        const { title, followers, description, image, link, newsletterJid } = data.result;
-        
-        // Download channel image
-        const imageRes = await axios.get(image, { 
-            responseType: 'arraybuffer',
-            timeout: 10000 
-        });
+        const channelId = metadata.id;
+        const name = metadata.name || metadata.title || 'Unnamed Channel';
+        const description = metadata.description || metadata.subtitle || 'No description';
+        const image = metadata.image || metadata.picture;
 
         const caption = `📢 *WhatsApp Channel Information*\n\n` +
-                       `🔖 *Title:* ${title}\n` +
-                       `👥 *Followers:* ${followers}\n` +
-                       `📄 *Description:* ${description || 'No description available'}\n` +
-                       `🆔 *Channel ID:* ${newsletterJid || 'N/A'}\n\n` +
-                       `🔗 *Link:* ${link}\n\n` +
+                       `🔖 *Channel ID:* ${channelId}\n` +
+                       `📛 *Name:* ${name}\n` +
+                       `📝 *Description:* ${description}\n` +
+                       `🔗 *Invite ID:* ${inviteId}\n\n` +
                        `👤 *Requested by:* @${sender.split('@')[0]}\n` +
                        `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
-        await ademola.sendMessage(from, {
-            image: Buffer.from(imageRes.data),
-            caption: caption,
-            mentions: [sender]
-        }, { 
-            quoted: fakevCard 
-        });
+        if (image) {
+            await ademola.sendMessage(from, {
+                image: { url: image },
+                caption: caption,
+                mentions: [sender]
+            }, { quoted: fakevCard });
+        } else {
+            await ademola.sendMessage(from, {
+                text: caption,
+                mentions: [sender]
+            }, { quoted: fakevCard });
+        }
 
     } catch (error) {
         console.error('WhatsApp Channel Stalk error:', error);
         
         if (error.code === 'ECONNABORTED') {
             await reply('❌ Request timeout. The channel information service is taking too long to respond.');
-        } else if (error.response?.status === 404) {
-            await reply('❌ Channel not found. Please check the URL and ensure the channel exists.');
-        } else if (error.response?.status === 429) {
-            await reply('❌ Rate limit exceeded. Please wait a few minutes before checking another channel.');
-        } else if (error.message?.includes('Invalid URL')) {
-            await reply('❌ Invalid WhatsApp channel URL format. Please provide a valid channel URL.');
         } else {
             await reply('❌ Failed to fetch channel information. The channel may be private or the service is unavailable.');
         }
@@ -77,6 +68,39 @@ ademola({
 });
 
 // ==================== TIKTOK STALK ====================
+async function scrapeTikTokProfile(username) {
+  const res = await axios.get(`https://www.tiktok.com/@${username}`, {
+    timeout: 15000,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept-Language': 'en-US,en;q=0.9'
+    }
+  });
+  const $ = cheerio.load(res.data);
+
+  const sigData = res.data.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (sigData) {
+    try {
+      const json = JSON.parse(sigData[1]);
+      const user = json?.props?.pageProps?.userData?.user || json?.props?.pageProps?.user;
+      if (user) return user;
+    } catch (e) { console.log('TT JSON parse error:', e.message); }
+  }
+
+  const avatar = $('img[src*="tiktok.com/avatar"]').first().attr('src') ||
+    $('img[src*="p16-sign"]').first().attr('src') || '';
+  const nickname = $('h1[data-e2e="user-title"]').text().trim() ||
+    $('h2[data-e2e="user-subtitle"]').text().trim() || username;
+  const followers = $('strong[data-e2e="followers-count"]').text().trim() || 'N/A';
+  const following = $('strong[data-e2e="following-count"]').text().trim() || 'N/A';
+  const likes = $('strong[data-e2e="likes-count"]').text().trim() || 'N/A';
+  const bio = $('h2[data-e2e="user-bio"]').text().trim() || 'No bio available';
+  const verified = res.data.includes('verified') || res.data.includes('"verified":true') ? 'Yes ✅' : 'No ❌';
+  const videoCount = $('strong[data-e2e="video-count"]').text().trim() || 'N/A';
+
+  return { avatar, nickname, username, followers, following, likes, bio, verified, videoCount };
+}
+
 ademola({
     pattern: "tiktokstalk",
     alias: ["tstalk", "ttstalk"],
@@ -91,45 +115,71 @@ ademola({
             return await reply(`📱 *TikTok Stalk*\n\nUsage: .tiktokstalk <username>\nExample: .tiktokstalk mrbeast`);
         }
 
-        const apiUrl = `https://api.nexoracle.com/stalking/tiktok?apikey=${process.env.NEXORACLE_API_KEY || ''}&username=${encodeURIComponent(q)}`;
-        const { data } = await axios.get(apiUrl);
+        await reply('🔄 Fetching TikTok profile...');
 
-        if (!data.status || !data.result) {
+        let user;
+        try {
+          const tikwmRes = await axios.get(`https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(q)}`, { timeout: 10000 });
+          if (tikwmRes.data?.data?.user) {
+            const u = tikwmRes.data.data.user;
+            user = {
+              avatar: u.avatarLarger || u.avatarMedium || u.avatarThumb,
+              nickname: u.nickname,
+              username: u.uniqueId,
+              followers: u.followerCount?.toLocaleString(),
+              following: u.followingCount?.toLocaleString(),
+              likes: u.heartCount?.toLocaleString(),
+              bio: u.signature || 'No bio available',
+              verified: u.verified ? 'Yes ✅' : 'No ❌',
+              videoCount: u.videoCount?.toLocaleString()
+            };
+          }
+        } catch (e) { console.log('TikWM API failed:', e.message); }
+
+        if (!user) {
+          const scraped = await scrapeTikTokProfile(q.replace(/^@/, ''));
+          user = {
+            avatar: scraped.avatar,
+            nickname: scraped.nickname,
+            username: scraped.username || q,
+            followers: scraped.followers,
+            following: scraped.following,
+            likes: scraped.likes,
+            bio: scraped.bio,
+            verified: scraped.verified,
+            videoCount: scraped.videoCount
+          };
+        }
+
+        if (!user || (!user.nickname && !user.username)) {
             return await reply('❌ TikTok user not found. Please check the username and try again.');
         }
 
-        const user = data.result;
-
         const profileInfo = `📱 *TikTok Profile*\n\n` +
-                          `👤 *Username:* @${user.username || user.uniqueId}\n` +
-                          `📛 *Nickname:* ${user.nickname || user.nick}\n` +
-                          `✅ *Verified:* ${user.verified ? "Yes ✅" : "No ❌"}\n` +
-                          `📍 *Region:* ${user.region || 'N/A'}\n` +
-                          `📝 *Bio:* ${user.bio || user.description || 'No bio available'}\n\n` +
+                          `👤 *Username:* @${user.username}\n` +
+                          `📛 *Nickname:* ${user.nickname || 'N/A'}\n` +
+                          `✅ *Verified:* ${user.verified || 'No ❌'}\n` +
+                          `📝 *Bio:* ${user.bio || 'No bio available'}\n\n` +
                           `📊 *Statistics:*\n` +
-                          `👥 *Followers:* ${(user.followers || user.followerCount || 0).toLocaleString()}\n` +
-                          `👤 *Following:* ${(user.following || user.followingCount || 0).toLocaleString()}\n` +
-                          `❤️ *Likes:* ${(user.likes || user.heartCount || 0).toLocaleString()}\n` +
-                          `🎥 *Videos:* ${(user.videoCount || user.videos || 0).toLocaleString()}\n\n` +
-                          `🔗 *Profile URL:* https://www.tiktok.com/@${user.username || user.uniqueId}\n\n` +
+                          `👥 *Followers:* ${user.followers || 'N/A'}\n` +
+                          `👤 *Following:* ${user.following || 'N/A'}\n` +
+                          `❤️ *Likes:* ${user.likes || 'N/A'}\n` +
+                          `🎥 *Videos:* ${user.videoCount || 'N/A'}\n\n` +
+                          `🔗 *Profile URL:* https://www.tiktok.com/@${user.username}\n\n` +
                        `👤 *Requested by:* @${sender.split('@')[0]}\n` +
                        `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴀᴅᴇᴍᴏʟᴀ ᴛᴇᴄʜ`;
 
         await ademola.sendMessage(from, {
-            image: { url: user.avatar || user.avatarLarger },
+            image: { url: user.avatar },
             caption: profileInfo,
             mentions: [sender]
-        }, {
-            quoted: fakevCard
-        });
+        }, { quoted: fakevCard });
 
     } catch (error) {
         console.error('TikTok Stalk error:', error);
-        
+
         if (error.response?.status === 404) {
             await reply('❌ TikTok user not found. Please check the username.');
-        } else if (error.code === 'ENOTFOUND') {
-            await reply('❌ Network error. Please check your internet connection.');
         } else {
             await reply('❌ Failed to fetch TikTok profile. Please try again later.');
         }

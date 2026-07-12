@@ -1,16 +1,10 @@
-//---------------------------------------------
-//           ADEMOLA-XD FACEBOOK DOWNLOADER
-//---------------------------------------------
-//  ⚠️ DO NOT MODIFY THIS FILE OR REMOVE THIS CREDIT⚠️  
-//---------------------------------------------
-
 const { ademola, fakevCard } = require('../ademola');
 const { channelInfo } = require('../lib/messageConfig');
 const axios = require('axios');
+const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
-// Fast loading animation for Facebook download
 async function sendFbLoading(ademola, from, action = "Processing") {
     const frames = ['📱', '📥', '⚡', '🔄', '✨'];
     let loadingMsg = await ademola.sendMessage(from, { 
@@ -28,7 +22,7 @@ async function sendFbLoading(ademola, from, action = "Processing") {
         } catch (e) {
             clearInterval(animationInterval);
         }
-    }, 400); // Fast animation ⚡
+    }, 400);
     
     return {
         stop: () => clearInterval(animationInterval),
@@ -36,55 +30,34 @@ async function sendFbLoading(ademola, from, action = "Processing") {
     };
 }
 
-const fbApis = [
-    {
-        name: "Nexoracle",
-        url: (url) => `https://api.nexoracle.com/downloader/facebook?apikey=${process.env.NEXORACLE_API_KEY}&url=${encodeURIComponent(url)}`,
-        parse: (data) => data?.result?.hd || data?.result?.sd
-    },
-    {
-        name: "Facebook Downloader",
-        url: (url) => `https://fbdownloader.net/api/?url=${encodeURIComponent(url)}`,
-        parse: (data) => data?.download_url
+async function scrapeFacebookVideo(url) {
+  const res = await axios.get(url, {
+    timeout: 20000,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept-Language': 'en-US,en;q=0.9'
     }
-];
+  });
+  const $ = cheerio.load(res.data);
 
-async function resolveFacebookUrl(url) {
-    try {
-        const res = await axios.get(url, { 
-            timeout: 15000, 
-            maxRedirects: 10, 
-            headers: { 
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' 
-            } 
-        });
-        return res?.request?.res?.responseUrl || url;
-    } catch {
-        return url;
-    }
-}
+  const hd = $('meta[property="og:video:secure_url"]').attr('content') ||
+    $('meta[property="og:video"]').attr('content') ||
+    $('meta[property="og:video:url"]').attr('content');
 
-async function fetchFromFacebookApi(api, url) {
-    try {
-        const response = await axios.get(api.url(url), {
-            timeout: 30000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'application/json, text/plain, */*'
-            },
-            validateStatus: status => status >= 200 && status < 500
-        });
-        
-        console.log(`✅ ${api.name} API response:`, response.status);
-        return response.data;
-    } catch (error) {
-        console.log(`❌ ${api.name} API failed:`, error.message);
-        throw error;
-    }
+  const sd = $('video[src*="fbcdn"]').attr('src') ||
+    $('source[src*="fbcdn"]').attr('src');
+
+  const thumb = $('meta[property="og:image"]').attr('content') ||
+    $('meta[name="twitter:image"]').attr('content');
+
+  const desc = $('meta[property="og:title"]').attr('content') ||
+    $('meta[property="og:description"]').attr('content') ||
+    '';
+
+  return { hd, sd: sd || hd, thumb, desc };
 }
 
 async function downloadFacebookVideo(videoUrl) {
-    // Create temp directory
     const tmpDir = path.join(process.cwd(), 'tmp');
     if (!fs.existsSync(tmpDir)) {
         fs.mkdirSync(tmpDir, { recursive: true });
@@ -115,7 +88,6 @@ async function downloadFacebookVideo(videoUrl) {
         writer.on('error', reject);
     });
 
-    // Verify download
     if (!fs.existsSync(tempFile) || fs.statSync(tempFile).size === 0) {
         fs.unlinkSync(tempFile);
         throw new Error('Downloaded file is empty');
@@ -150,57 +122,32 @@ ademola({
         // Start processing animation
         const processingAnimation = await sendFbLoading(ademola, from, "Processing Facebook URL...");
 
-        // Resolve URL (handle short links)
-        const resolvedUrl = await resolveFacebookUrl(q);
-        console.log(`Resolved URL: ${resolvedUrl}`);
-
         processingAnimation.stop();
 
-        // Start API fetching animation
         const apiAnimation = await sendFbLoading(ademola, from, "Fetching video data...");
 
         let videoData = null;
-        let apiUsed = null;
 
-        // Filter APIs that require configured keys
-        const availableApis = fbApis.filter(api => {
-            if (api.name === 'Nexoracle' && !process.env.NEXORACLE_API_KEY) return false;
-            return true;
-        });
-
-        // Try multiple APIs
-        for (const api of availableApis) {
-            try {
-                console.log(`Trying ${api.name} API...`);
-                const data = await fetchFromFacebookApi(api, resolvedUrl);
-                
-                const parsedUrl = api.parse(data);
-                if (parsedUrl) {
-                    videoData = parsedUrl;
-                    apiUsed = api.name;
-                    break;
-                }
-            } catch (error) {
-                console.log(`${api.name} failed:`, error.message);
-                continue;
-            }
+        try {
+            const result = await scrapeFacebookVideo(q);
+            videoData = result.hd || result.sd;
+        } catch (err) {
+            console.log('Facebook scraping failed:', err.message);
         }
 
         if (!videoData) {
             apiAnimation.stop();
-            return await reply(`❌ *Failed to fetch video!*\n\nPossible reasons:\n• Video is private/restricted\n• URL is invalid\n• All APIs are busy\n• Video is too long\n\nPlease try again with a different URL.`);
+            return await reply(`❌ *Failed to fetch video!*\n\nPossible reasons:\n• Video is private/restricted\n• URL is invalid\n• Facebook blocked the request\n• Video is too long\n\nPlease try again with a different URL.`);
         }
 
         apiAnimation.stop();
 
-        // Show video info
         const videoInfo = `
 ╭───═══━ • ━═══───╮
    📱 *FACEBOOK VIDEO*
 ╰───═══━ • ━═══───╯
 
 ✅ *Video data fetched successfully!*
-🔧 *Service:* ${apiUsed}
 🌐 *URL:* ${q.length > 30 ? q.substring(0, 30) + '...' : q}
 
 ⏳ *Downloading video...*

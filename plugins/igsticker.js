@@ -7,6 +7,7 @@
 const { ademola, fakevCard } = require('../ademola');
 const { channelInfo } = require('../lib/messageConfig');
 const axios = require('axios');
+const cheerio = require('cheerio');
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -88,8 +89,8 @@ async function convertToSticker(buffer, isVideo = false) {
     const finalBuffer = await img.save(null);
 
     // Cleanup temp files
-    try { fs.unlinkSync(tempInput); } catch {}
-    try { fs.unlinkSync(tempOutput); } catch {}
+    try { fs.unlinkSync(tempInput); } catch (e) { console.error('Cleanup error:', e); }
+    try { fs.unlinkSync(tempOutput); } catch (e) { console.error('Cleanup error:', e); }
 
     return finalBuffer;
 }
@@ -141,26 +142,52 @@ ademola({
         // Start ultra-fast loading
         const loadingAnimation = await sendStickerLoading(ademola, from, "Fetching Instagram media");
 
-        const nexoracleKey = process.env.NEXORACLE_API_KEY;
-        if (!nexoracleKey) return await reply('❌ NEXORACLE_API_KEY not configured in .env');
-        const igRes = await axios.get(`https://api.nexoracle.com/downloader/ig?apikey=${nexoracleKey}&url=${encodeURIComponent(q)}`, { timeout: 20000 });
-        const downloadData = igRes.data;
-
         let mediaItems = [];
-        if (downloadData?.status === 200 && downloadData?.result?.data) {
-            mediaItems = downloadData.result.data;
-        } else if (downloadData?.data?.length) {
-            mediaItems = downloadData.data;
-        } else {
-            loadingAnimation.stop();
-            return await reply(`❌ *No media found!*\n\nPossible reasons:\n• Post is private\n• Link is invalid\n• Account is private\n\nPlease check the URL and try again.`);
+
+        try {
+            const igRes = await axios.get(q, {
+                timeout: 20000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept-Language': 'en-US,en;q=0.9'
+                }
+            });
+            const $ = cheerio.load(igRes.data);
+
+            const ogVideo = $('meta[property="og:video"]').attr('content') ||
+                $('meta[property="og:video:secure_url"]').attr('content');
+            const ogImage = $('meta[property="og:image"]').attr('content');
+
+            const initState = igRes.data.match(/window\.__INITIAL_STATE__\s*=\s*({.+?});/);
+            if (initState) {
+                try {
+                    const json = JSON.parse(initState[1]);
+                    const items = json?.shortcode_media?.display_resources ||
+                        json?.xdt_api__v1__media__shortcode__web_info?.items?.[0]?.carousel_media ||
+                        [json?.xdt_api__v1__media__shortcode__web_info?.items?.[0]];
+                    if (items) {
+                        const allMedia = Array.isArray(items) ? items : [items];
+                        for (const item of allMedia) {
+                            const mediaUrl = item?.video_url || item?.display_url;
+                            if (mediaUrl) mediaItems.push({ url: mediaUrl });
+                        }
+                    }
+                } catch (e) { console.log('IG JSON parse error:', e.message); }
+            }
+
+            if (mediaItems.length === 0 && ogVideo) {
+                mediaItems.push({ url: ogVideo });
+            }
+            if (mediaItems.length === 0 && ogImage) {
+                mediaItems.push({ url: ogImage });
+            }
+        } catch (err) {
+            console.log('Instagram scraping failed:', err.message);
         }
 
-        mediaItems = mediaItems.filter(item => (item?.url || item?.download_url || item));
-        
         if (!mediaItems.length) {
             loadingAnimation.stop();
-            return await reply(`❌ *No valid media found!*\n\nThe scraper couldn't extract any media from this post.`);
+            return await reply(`❌ *No media found!*\n\nPossible reasons:\n• Post is private\n• Link is invalid\n• Account is private\n\nPlease check the URL and try again.`);
         }
 
         loadingAnimation.stop();
