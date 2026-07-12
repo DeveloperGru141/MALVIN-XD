@@ -1,32 +1,19 @@
 const { ademola, fakevCard } = require("../ademola");
 const axios = require('axios');
 
-const NEXORACLE_KEY = process.env.NEXORACLE_API_KEY;
-
 const MODELS = {
-    flux: { label: 'Flux', desc: 'Top-tier general (Black Forest Labs)', pollinations: true },
-    'flux-realism': { label: 'Flux Realism', desc: 'Photorealistic (Flux fine-tune)', pollinations: true },
-    'flux-anime': { label: 'Flux Anime', desc: 'Anime style (Flux fine-tune)', pollinations: true },
-    midjourney: { label: 'Midjourney', desc: 'Artistic / cinematic style', pollinations: false },
-    'any-dark': { label: 'Dark', desc: 'Dark aesthetic', pollinations: true },
-    '3d': { label: '3D', desc: '3D render style', pollinations: true },
+    flux: { label: 'Flux', desc: 'Top-tier general (Black Forest Labs)' },
+    'flux-realism': { label: 'Flux Realism', desc: 'Photorealistic (Flux fine-tune)' },
+    'flux-anime': { label: 'Flux Anime', desc: 'Anime style (Flux fine-tune)' },
+    midjourney: { label: 'Midjourney', desc: 'Artistic / cinematic style (approximated via Flux)' },
+    'any-dark': { label: 'Dark', desc: 'Dark aesthetic' },
+    '3d': { label: '3D', desc: '3D render style' },
 };
 
-async function generateViaPollinations(prompt, model = 'flux', width = 1024, height = 1024) {
+async function generateImage(prompt, model = 'flux', width = 1024, height = 1024) {
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&model=${model}&nologo=true&seed=${Math.floor(Math.random() * 999999)}`;
     const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 120000 });
     return Buffer.from(res.data);
-}
-
-async function generateViaNexoracle(prompt, width = 1024, height = 1024) {
-    const url = `https://api.nexoracle.com/ai/midjourney?apikey=${NEXORACLE_KEY}&prompt=${encodeURIComponent(prompt)}&width=${width}&height=${height}`;
-    const res = await axios.get(url, { timeout: 60000 });
-    const imageUrl = res.data?.result || res.data?.image || res.data?.url;
-    if (imageUrl) {
-        const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 60000 });
-        return Buffer.from(imgRes.data);
-    }
-    throw new Error('No image in response');
 }
 
 function parseOptions(text) {
@@ -74,17 +61,9 @@ ademola({
 
         await reply(`_🎨 Generating with ${MODELS[model].label}... Please wait._`);
 
-        if (model === 'midjourney') {
-            try {
-                imageBuffer = await generateViaNexoracle(prompt, width, height);
-            } catch (mjErr) {
-                console.log('Midjourney API failed, falling back to Flux:', mjErr.message);
-                imageBuffer = await generateViaPollinations(prompt, 'flux-realism', width, height);
-                usedModel = 'flux-realism';
-            }
-        } else {
-            imageBuffer = await generateViaPollinations(prompt, model, width, height);
-        }
+        const actualModel = (model === 'midjourney') ? 'flux-realism' : model;
+        imageBuffer = await generateImage(prompt, actualModel, width, height);
+        usedModel = actualModel;
 
         await ademola.sendMessage(from, {
             image: imageBuffer,

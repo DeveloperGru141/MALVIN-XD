@@ -2,35 +2,45 @@
 const { ademola, fakevCard } = require("../ademola");
 const axios = require('axios');
 
-const POLLINATIONS_BASE = 'https://text.pollinations.ai';
-
 async function askAI(prompt, model = 'openai', system = 'You are a helpful AI assistant.') {
     const models = [...new Set([model, 'openai', 'mistral'])];
     let lastErr;
 
     for (const m of models) {
         try {
-            let url = `${POLLINATIONS_BASE}/${encodeURIComponent(prompt.slice(0, 2000))}`;
-            const params = new URLSearchParams();
-            if (m) params.set('model', m);
-            if (system) params.set('system', system.slice(0, 500));
-            const qs = params.toString();
-            if (qs) url += '?' + qs;
+            const { data } = await axios.post('https://text.pollinations.ai/', {
+                messages: [
+                    { role: 'system', content: system.slice(0, 1000) },
+                    { role: 'user', content: prompt.slice(0, 2000) }
+                ],
+                model: m
+            }, { timeout: 30000 });
 
-            const res = await axios.get(url, { timeout: 30000 });
             let text = '';
-            if (typeof res.data === 'string') text = res.data;
-            else if (res.data?.output) text = res.data.output;
-            else if (res.data?.text) text = res.data.text;
-            else if (res.data?.response) text = res.data.response;
-            else text = String(res.data || '');
+            if (typeof data === 'string') text = data;
+            else if (data?.choices?.[0]?.message?.content) text = data.choices[0].message.content;
+            else if (data?.output) text = data.output;
+            else if (data?.response) text = data.response;
+            else if (data?.text) text = data.text;
 
             if (text.trim()) return text.trim();
-        } catch (e) {
-            lastErr = e;
-        }
+        } catch (e) { lastErr = e; }
     }
-    throw lastErr || new Error('All models failed');
+
+    try {
+        const hfToken = process.env.HUGGINGFACE_API_KEY || '';
+        const headers = { 'Content-Type': 'application/json' };
+        if (hfToken) headers['Authorization'] = `Bearer ${hfToken}`;
+        const { data } = await axios.post(
+            'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3',
+            { inputs: `[INST] ${system}\n\n${prompt} [/INST]` },
+            { headers, timeout: 45000 }
+        );
+        const text = Array.isArray(data) ? data[0]?.generated_text : data?.generated_text;
+        if (text?.trim()) return text.trim();
+    } catch (e) { lastErr = e; }
+
+    throw lastErr || new Error('All AI models are currently unavailable.');
 }
 
 // Claude

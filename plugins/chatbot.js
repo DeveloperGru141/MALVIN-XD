@@ -86,28 +86,44 @@ Assistant:`.trim();
 
         for (const model of models) {
             try {
-                const response = await axios.get(`https://text.pollinations.ai/${encodeURIComponent(simplePrompt)}?model=${model}&system=${encodeURIComponent('You are a friendly casual AI assistant. Keep responses short, conversational, and use emojis naturally.')}`, {
-                    timeout: 15000
-                });
+                const { data } = await axios.post('https://text.pollinations.ai/', {
+                    messages: [
+                        { role: 'system', content: 'You are a friendly casual AI assistant. Keep responses short, conversational, and use emojis naturally.' },
+                        { role: 'user', content: simplePrompt }
+                    ],
+                    model
+                }, { timeout: 15000 });
 
-                if (response.data) {
-                    let answer = typeof response.data === 'string' ? response.data : String(response.data);
-                    answer = answer.trim()
-                        .replace(/["']/g, '')
-                        .replace(/\n\s*\n/g, '\n');
-                    if (answer && answer.length > 0) {
-                        console.log(`📥 API response received (model: ${model})`);
-                        return answer;
-                    }
+                let answer = '';
+                if (typeof data === 'string') answer = data;
+                else if (data?.choices?.[0]?.message?.content) answer = data.choices[0].message.content;
+                else if (data?.output) answer = data.output;
+                else if (data?.response) answer = data.response;
+
+                if (answer?.trim()) {
+                    console.log(`📥 API response received (model: ${model})`);
+                    return answer.trim().replace(/["']/g, '').replace(/\n\s*\n/g, '\n');
                 }
                 lastErr = new Error('Empty response');
             } catch (e) {
                 lastErr = e;
-                continue;
             }
         }
+
+        try {
+            const hfToken = process.env.HUGGINGFACE_API_KEY || '';
+            const headers = { 'Content-Type': 'application/json' };
+            if (hfToken) headers['Authorization'] = `Bearer ${hfToken}`;
+            const { data: hfData } = await axios.post(
+                'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3',
+                { inputs: `[INST] You are a friendly casual AI assistant. Keep responses short.\n\n${simplePrompt} [/INST]` },
+                { headers, timeout: 30000 }
+            );
+            const text = Array.isArray(hfData) ? hfData[0]?.generated_text : hfData?.generated_text;
+            if (text?.trim()) return text.trim().replace(/\n\s*\n/g, '\n');
+        } catch (e) { lastErr = e; }
         
-        throw lastErr || new Error('All models failed');
+        throw lastErr || new Error('All AI models unavailable');
         
     } catch (error) {
         console.error('❌ AI API Error:', error.message);
