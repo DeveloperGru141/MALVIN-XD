@@ -97,7 +97,7 @@ ademola({
     filename: __filename,
 }, async (ademola, mek, m, { from, q, reply }) => {
     try {
-        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
+        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(m.sender));
         if (!isOwner) {
             return reply("❌ This command is only available for the owner!", { quoted: fakevCard });
         }

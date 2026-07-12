@@ -45,7 +45,7 @@ ademola({
 }, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
     try {
         // Check if user is owner using the same method as promote/demote
-        const isOwner = mek.key.fromMe || (await require('../lib/isOwnerOrSudo')(sender));
+        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
 
         if (!isOwner) {
             return await reply('❌ Only owner can add sudo users.');
@@ -120,7 +120,7 @@ ademola({
 }, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
     try {
         // Check if user is owner using the same method as promote/demote
-        const isOwner = mek.key.fromMe || (await require('../lib/isOwnerOrSudo')(sender));
+        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
 
         if (!isOwner) {
             return await reply('❌ Only owner can remove sudo users.');

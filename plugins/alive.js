@@ -4,23 +4,9 @@ const os = require('os');
 const { fakevCard } = require('../lib/fakevCard');
 const { channelInfo } = require('../lib/messageConfig');
 const { loadSettings } = require('../lib/settingsManager');
+const { toTinyCaps } = require('../lib/myfunc');
 
 const botStartTime = Date.now();
-
-// Tiny caps mapping for lowercase letters
-const tinyCapsMap = {
-  a: 'ᴀ', b: 'ʙ', c: 'ᴄ', d: 'ᴅ', e: 'ᴇ', f: 'ғ', g: 'ɢ', h: 'ʜ', i: 'ɪ',
-  j: 'ᴊ', k: 'ᴋ', l: 'ʟ', m: 'ᴍ', n: 'ɴ', o: 'ᴏ', p: 'ᴘ', q: 'q', r: 'ʀ',
-  s: 's', t: 'ᴛ', u: 'ᴜ', v: 'ᴠ', w: 'ᴡ', x: 'x', y: 'ʏ', z: 'ᴢ'
-};
-
-// Function to convert string to tiny caps
-const toTinyCaps = (str) => {
-  return str
-    .split('')
-    .map((char) => tinyCapsMap[char.toLowerCase()] || char)
-    .join('');
-};
 
 // Format status info with tiny caps
 const formatStatusInfo = (pushname, harareTime, harareDate, runtimeHours, runtimeMinutes, runtimeSeconds, settings) => `

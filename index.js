@@ -1,25 +1,17 @@
 require('./settings')
-const { Boom } = require('@hapi/boom')
 const fs = require('fs')
 const chalk = require('chalk')
-const FileType = require('file-type')
 const path = require('path')
 const axios = require('axios')
 const PhoneNumber = require('awesome-phonenumber')
 const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = require('./lib/exif')
-const { smsg, isUrl, getBuffer, getSizeMedia, sleep, reSize } = require('./lib/myfunc')
+const { smsg, isUrl, getBuffer, getSizeMedia, sleep, reSize, toTinyCaps } = require('./lib/myfunc')
 const {
     default: makeWASocket,
     useMultiFileAuthState,
     DisconnectReason,
     fetchLatestBaileysVersion,
-    generateForwardMessageContent,
-    prepareWAMessageMedia,
-    generateWAMessageFromContent,
-    generateMessageID,
-    downloadContentFromMessage,
     jidDecode,
-    proto,
     jidNormalizedUser,
     makeCacheableSignalKeyStore,
     delay
@@ -27,10 +19,6 @@ const {
 const NodeCache = require("node-cache")
 const pino = require("pino")
 const readline = require("readline")
-const { parsePhoneNumber } = require("libphonenumber-js")
-const { PHONENUMBER_MCC } = require('@whiskeysockets/baileys/lib/Utils/generics')
-const { rmSync, existsSync } = require('fs')
-const { join } = require('path')
 
 const { loadSettings } = require('./lib/settingsManager');
 const { ademola, commands, setSocket } = require('./ademola')
@@ -86,16 +74,6 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 console.log('🔧 Temp cleanup system initialized');
-
-const tinyCapsMap = {
-    a: 'ᴀ', b: 'ʙ', c: 'ᴄ', d: 'ᴅ', e: 'ᴇ', f: 'ғ', g: 'ɢ', h: 'ʜ', i: 'ɪ',
-    j: 'ᴊ', k: 'ᴋ', l: 'ʟ', m: 'ᴍ', n: 'ɴ', o: 'ᴏ', p: 'ᴘ', q: 'q', r: 'ʀ',
-    s: 's', t: 'ᴛ', u: 'ᴜ', v: 'ᴠ', w: 'ᴡ', x: 'x', y: 'ʏ', z: 'ᴢ'
-};
-
-const toTinyCaps = (str) => {
-    return str.split('').map((char) => tinyCapsMap[char.toLowerCase()] || char).join('');
-};
 
 store.readFromFile()
 const settings = require('./settings')
@@ -329,7 +307,7 @@ const question = (text) => {
 async function downloadSessionData() {
     try {
         await fs.promises.mkdir(SESSION_DIR, { recursive: true });
-        if (!existsSync(CREDS_PATH)) {
+        if (!fs.existsSync(CREDS_PATH)) {
             if (!global.SESSION_ID) {
                 console.log(chalk.red('Session ID not found and creds.json missing! Falling back to pairing code...'));
                 return false;
@@ -923,7 +901,7 @@ async function startAdemolaXD() {
             const statusCode = lastDisconnect?.error?.output?.statusCode
             if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
                 try {
-                    rmSync(SESSION_DIR, { recursive: true, force: true })
+                    fs.rmSync(SESSION_DIR, { recursive: true, force: true })
                 } catch { }
                 console.log(chalk.red('Session logged out. Please re-authenticate.'))
             }

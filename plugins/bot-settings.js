@@ -1,18 +1,8 @@
 const { ademola, fakevCard } = require("../ademola");
 const { channelInfo } = require('../lib/messageConfig');
 const { loadSettings, saveSettings, updateSetting } = require('../lib/settingsManager');
+const { toTinyCaps } = require('../lib/myfunc');
 const SETTINGS_IMG = "";
-
-// Tiny caps mapping
-const tinyCapsMap = {
-    a: 'ᴀ', b: 'ʙ', c: 'ᴄ', d: 'ᴅ', e: 'ᴇ', f: 'ғ', g: 'ɢ', h: 'ʜ', i: 'ɪ',
-    j: 'ᴊ', k: 'ᴋ', l: 'ʟ', m: 'ᴍ', n: 'ɴ', o: 'ᴏ', p: 'ᴘ', q: 'q', r: 'ʀ',
-    s: 's', t: 'ᴛ', u: 'ᴜ', v: 'ᴠ', w: 'ᴡ', x: 'x', y: 'ʏ', z: 'ᴢ'
-};
-
-const toTinyCaps = (str) => {
-    return str.split('').map((char) => tinyCapsMap[char.toLowerCase()] || char).join('');
-};
 
 // ==================== SHOW SETTINGS ====================
 ademola({

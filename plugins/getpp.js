@@ -12,7 +12,7 @@ ademola({
 }, async (ademola, mek, m, { from, args, isGroup, sender, reply, text, isAdmin }) => {
     try {
         // Check if user is owner (using your framework's isOwner function)
-        const isOwner = mek.key.fromMe || (await require('../lib/isOwnerOrSudo')(sender));
+        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
         
         if (!isOwner) {
             return await reply('😡 Command only for the owner.');
