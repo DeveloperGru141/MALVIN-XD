@@ -18,11 +18,8 @@ const {
 const NodeCache = require("node-cache")
 const pino = require("pino")
 const readline = require("readline")
-<<<<<<< HEAD
 const { rmSync, existsSync } = require('fs')
 const { join } = require('path')
-=======
->>>>>>> 844315816c65935d2ef65ce1f8013ce525023bfd
 
 const { loadSettings } = require('./lib/settingsManager');
 const { ademola, commands, setSocket } = require('./ademola')

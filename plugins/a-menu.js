@@ -4,12 +4,7 @@ const axios = require('axios');
 const moment = require('moment-timezone');
 const { getPrefix } = require('../lib/prefix');
 const { loadSettings } = require('../lib/settingsManager');
-<<<<<<< HEAD
-
 const { toTinyCaps } = require('../lib/tinyCaps');
-=======
-const { toTinyCaps } = require('../lib/myfunc');
->>>>>>> 844315816c65935d2ef65ce1f8013ce525023bfd
 
 const fetchBotInfo = async () => {
     return { forks: '0', stars: '0', repo: '' };

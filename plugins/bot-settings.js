@@ -1,14 +1,9 @@
 const { ademola, fakevCard } = require("../ademola");
 const { channelInfo } = require('../lib/messageConfig');
 const { loadSettings, saveSettings, updateSetting } = require('../lib/settingsManager');
-const { toTinyCaps } = require('../lib/myfunc');
+const { toTinyCaps } = require('../lib/tinyCaps');
 const SETTINGS_IMG = "";
 
-<<<<<<< HEAD
-const { toTinyCaps } = require('../lib/tinyCaps');
-
-=======
->>>>>>> 844315816c65935d2ef65ce1f8013ce525023bfd
 // ==================== SHOW SETTINGS ====================
 ademola({
     pattern: "settings",
