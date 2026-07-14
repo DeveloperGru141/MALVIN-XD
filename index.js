@@ -276,6 +276,11 @@ const requestPairing = !useQr
 const phoneNumber = null
 
 let restarting = false;
+let reconnectAttempts = 0;
+let pairingCodeRequested = false;
+const MAX_RECONNECT_DELAY = 300000;
+const RATE_LIMIT_CODES = [408, 515, 429, 401];
+
 setInterval(() => {
     const used = process.memoryUsage().rss / 1024 / 1024
     if (used > 600 && !restarting) {
@@ -809,9 +814,10 @@ async function startAdemolaXD() {
         }
     });
 
-    if (requestPairing && !sessionLoaded) {
+    if (requestPairing && !sessionLoaded && !pairingCodeRequested) {
         if (useMobile) throw new Error('Cannot use pairing code with mobile api')
 
+        pairingCodeRequested = true;
         setTimeout(async () => {
             try {
                 let pairingPhoneNumber = phoneNumber || process.env.OWNER_NUMBER
@@ -820,6 +826,7 @@ async function startAdemolaXD() {
                 const pn = require('awesome-phonenumber');
                 if (!pn('+' + pairingPhoneNumber).isValid()) {
                     console.log(chalk.red('Invalid phone number. Please check your OWNER_NUMBER in .env'));
+                    pairingCodeRequested = false;
                     return;
                 }
 
@@ -837,6 +844,8 @@ async function startAdemolaXD() {
     ademolaBot.ev.on('connection.update', async (s) => {
         const { connection, lastDisconnect } = s
         if (connection == "open") {
+            reconnectAttempts = 0;
+            pairingCodeRequested = false;
             console.log(chalk.magenta(` `))
             console.log(chalk.bold.blue(`🤖 Connected to => ` + JSON.stringify(ademolaBot.user, null, 2)))
 
@@ -895,9 +904,14 @@ async function startAdemolaXD() {
                     fs.rmSync(SESSION_DIR, { recursive: true, force: true })
                 } catch { }
                 console.log(chalk.red('Session logged out. Please re-authenticate.'))
+                pairingCodeRequested = false;
             }
-            console.log(chalk.yellow(`🔄 Reconnecting in 3s... (code: ${statusCode || 'unknown'})`));
-            await delay(3000);
+            reconnectAttempts++;
+            const backoffDelay = Math.min(3000 * Math.pow(2, reconnectAttempts), 60000);
+            const isRateLimited = RATE_LIMIT_CODES.includes(statusCode);
+            const finalDelay = isRateLimited ? Math.max(backoffDelay, 30000) : backoffDelay;
+            console.log(chalk.yellow(`🔄 Reconnecting in ${finalDelay/1000}s... (code: ${statusCode || 'unknown'}, attempt: ${reconnectAttempts})`));
+            await delay(finalDelay);
             restarting = false;
             startAdemolaXD();
         }
