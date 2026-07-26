@@ -398,54 +398,28 @@ volumes:
         }
 
         // 3. Create .dockerignore
-        const dockerIgnore = `node_modules
-node_modules/
-.env
-.env.example
-data/
-session/
-.temp
-.tmp
-logs/
-*.log
-tmp/
-vscode-
-.git
-git/
-.cache
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-coverage/
-.nyc_output
-build/
-dist/
-*.tgz
-*.tar.gz
-*.tar
-*.zip
-*.rar
-*.7z
-*.exe
-*.dll
-*.so
-*.dylib
-*.o
-*.a
-*.obj
-*.class
-*.jar
-*.war
-*.ear
-*.pyc
-*.pyo
-*.pyd
-*.so
-*.dll
-*.dylib
-*.so.*\n*.dll.*\n*.dylib.*\n*.o\n*.a\n*.obj\n*.log\n*.log.*\n*.cache\n*.tmp\n*.temp\n*.backup\n*.bak\n*.old\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.rej\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*.orig\n*.patch\n*.diff\n*.rej\n*..\n`;
+        const dockerIgnore = [
+'node_modules/',
+'.env',
+'.env.example',
+'data/',
+'session/',
+'temp/',
+'tmp/',
+'logs/',
+'*.log',
+'.git',
+'.cache',
+'.DS_Store',
+'Thumbs.db',
+'*.swp',
+'*.swo',
+'coverage/',
+'build/',
+'dist/',
+'README.md',
+'LICENSE',
+].join('\n') + '\n';
 
         try {
             fs.writeFileSync(path.join(ROOT_DIR, '.dockerignore'), dockerIgnore);

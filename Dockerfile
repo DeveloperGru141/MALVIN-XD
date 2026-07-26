@@ -14,9 +14,11 @@ COPY . .
 
 ENV NODE_ENV=production
 
-EXPOSE 3000
+# The bot does not listen on HTTP; this is informational only.
+# Port is not actually bound unless an HTTP server is started.
+# EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD node -e "try { require('fs').accessSync('./session/creds.json'); process.exit(0); } catch(e) { process.exit(1); }"
+HEALTHCHECK --interval=30s --timeout=15s --start-period=90s --retries=4 \
+    CMD pgrep -f "node.*index.js" || exit 1
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "start:production"]

@@ -14,8 +14,8 @@ module.exports = {
     time: true,
     max_restarts: 5,
     min_uptime: '10s',
-    max_memory_restart: '512M',
     max_restart_delay: 300000,
+    node_args: '--expose-gc --max-old-space-size=512',
     watch: false,
     ignore_watch: ['node_modules', 'logs']
   }]
