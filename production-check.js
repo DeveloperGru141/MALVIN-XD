@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT_DIR = path.join(__dirname, '..');
+const ROOT_DIR = __dirname;
 
 class ProductionReadinessChecker {
     constructor() {
@@ -321,10 +321,10 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - SESSION_ID=${SESSION_ID:-}  # Add your SESSION_ID if you have one
-      - OWNER_NUMBER=${OWNER_NUMBER:-2348108574293}
-      - OWNER_NAME=${OWNER_NAME:-Ademola King}
-      - BOT_NAME=${BOT_NAME:-ADEMOLA XD 🔥}
+      - SESSION_ID=\${SESSION_ID:-}  # Add your SESSION_ID if you have one
+      - OWNER_NUMBER=\${OWNER_NUMBER:-2348108574293}
+      - OWNER_NAME=\${OWNER_NAME:-Ademola King}
+      - BOT_NAME=\${BOT_NAME:-ADEMOLA XD 🔥}
     volumes:
       - ./session:/app/session        # WhatsApp session credentials
       - ./data:/app/data              # Bot data (messageCount.json, settings.json)

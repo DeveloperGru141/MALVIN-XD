@@ -40,7 +40,7 @@ ademola({
     react: "🔄",
     use: ".autostatus [on/off/react on/react off]",
     filename: __filename,
-}, async (ademola, mek, m, { from, q, reply, isGroup }) => {
+}, async (ademola, mek, m, { from, q, reply, sender }) => {
     try {
          const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
         // Only bot owner can use this command

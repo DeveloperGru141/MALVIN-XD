@@ -15,7 +15,7 @@ ademola({
     category: "general", 
     react: "🔧",
     filename: __filename
-}, async (ademola, mek, m, { from, reply }) => {
+}, async (ademola, mek, m, { from, reply, sender }) => {
     try {
        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
         const currentPrefix = getPrefix();
@@ -50,7 +50,7 @@ ademola({
     category: "owner",
     react: "⚙️",
     filename: __filename
-}, async (ademola, mek, m, { from, reply, text, body, args }) => {
+}, async (ademola, mek, m, { from, reply, text, body, args, sender }) => {
     try {
     
         const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
@@ -142,7 +142,7 @@ ademola({
     category: "owner",
     react: "🔄",
     filename: __filename
-}, async (ademola, mek, m, { from, reply }) => {
+}, async (ademola, mek, m, { from, reply, sender }) => {
     try {
         const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
         if (!isOwner) {

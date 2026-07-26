@@ -1,6 +1,6 @@
 const { ademola, fakevCard } = require("../ademola");
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
-const { loadSettings, saveSettings, updateSetting } = require('../lib/settingsManager');
+const { loadSettings, updateSetting } = require('../lib/settingsManager');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -291,7 +291,6 @@ ademola({
         const currentSettings = loadSettings();
 
         // Helper functions
-        const getStatus = (value) => value ? "✅ Set" : "❌ Not set";
         const getModeIcon = (mode) => mode === 'private' ? '🔒' : '🔓';
         const getModeText = (mode) => mode === 'private' ? 'PRIVATE' : 'PUBLIC';
 

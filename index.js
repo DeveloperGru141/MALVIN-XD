@@ -1,10 +1,8 @@
-require('./settings')
 const fs = require('fs')
 const chalk = require('chalk')
 const path = require('path')
 const PhoneNumber = require('awesome-phonenumber')
-const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = require('./lib/exif')
-const { smsg, isUrl, getBuffer, getSizeMedia, sleep, reSize, toTinyCaps } = require('./lib/myfunc')
+const { smsg } = require('./lib/myfunc')
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -18,17 +16,15 @@ const {
 const NodeCache = require("node-cache")
 const pino = require("pino")
 const readline = require("readline")
-const { rmSync, existsSync } = require('fs')
-const { join } = require('path')
 
 const { loadSettings } = require('./lib/settingsManager');
-const { ademola, commands, setSocket } = require('./ademola')
+const { commands, setSocket } = require('./ademola')
 const { channelInfo } = require('./lib/messageConfig')
 const store = require('./lib/lightweight_store')
 const isAdmin = require('./lib/isAdmin');
 const { isBanned } = require('./lib/isBanned');
 const isOwnerOrSudo = require('./lib/isOwner');
-const { getPrefix, setPrefix, resetPrefix } = require('./lib/prefix');
+const { getPrefix } = require('./lib/prefix');
 const { AntiDelete, storeMessage: storeAntideleteMessage, loadAntideleteConfig } = require('./plugins/antidelete');
 const { Antilink } = require('./lib/antilink');
 const { handleStatusUpdate } = require('./plugins/autostatus');
@@ -688,9 +684,10 @@ async function startAdemolaXD() {
             return;
         }
 
-        const cmd = body.slice(currentPrefix.length).trim().split(' ')[0].toLowerCase();
-        const args = body.slice(currentPrefix.length + cmd.length).trim().split(' ');
-        const q = args.join(' ').trim();
+        const commandText = body.slice(currentPrefix.length).trim();
+        const cmd = commandText.split(/\s+/)[0].toLowerCase();
+        const q = commandText.slice(cmd.length).trim();
+        const args = q ? q.split(/\s+/) : [];
 
         const command = commands.find(cmdObj =>
             cmdObj.pattern === cmd ||
@@ -718,7 +715,7 @@ async function startAdemolaXD() {
 
                 await command.function(ademola, mek, m, {
                     from,
-                    args: args.slice(1),
+                    args,
                     q,
                     text: q,
                     isGroup,

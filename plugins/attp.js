@@ -1,7 +1,7 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { writeExifImg, writeExifVid } = require('../lib/exif');
+const { writeExifVid } = require('../lib/exif');
 const { ademola, fakevCard } = require('../ademola');
 
 // Ademola XD ATTP Command
@@ -13,9 +13,8 @@ ademola({
     react: "✨",
     use: ".attp <text>",
     filename: __filename,
-}, async (ademola, mek, m, { from, q, reply, isGroup }) => {
+}, async (ademola, mek, m, { from, q, reply }) => {
     try {
-        const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
         let text = q?.trim();
         
         if (!text) {

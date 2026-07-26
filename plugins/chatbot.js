@@ -171,7 +171,7 @@ ademola({
     react: "🤖",
     use: ".gcbot [on/off]",
     filename: __filename,
-}, async (ademola, mek, m, { from, q, reply, isGroup, isAdmin }) => {
+}, async (ademola, mek, m, { from, q, reply, isGroup, isAdmin, sender }) => {
     try {
         const isOwner = mek.key.fromMe || (await require('../lib/isOwner')(sender));
         const data = loadUserGroupData();

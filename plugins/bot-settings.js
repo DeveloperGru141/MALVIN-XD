@@ -1,6 +1,6 @@
 const { ademola, fakevCard } = require("../ademola");
 const { channelInfo } = require('../lib/messageConfig');
-const { loadSettings, saveSettings, updateSetting } = require('../lib/settingsManager');
+const { loadSettings } = require('../lib/settingsManager');
 const { toTinyCaps } = require('../lib/tinyCaps');
 const SETTINGS_IMG = "";
 
@@ -21,7 +21,6 @@ ademola({
         const currentSettings = loadSettings();
 
         // Helper functions
-        const getStatus = (value) => value ? "✅ Set" : "❌ Not set";
         const getModeIcon = (mode) => mode === 'private' ? '🔒' : '🔓';
         const getModeText = (mode) => mode === 'private' ? 'PRIVATE' : 'PUBLIC';
 
