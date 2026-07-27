@@ -304,9 +304,6 @@ const question = (text) => {
 async function downloadSessionData() {
     try {
         await fs.promises.mkdir(SESSION_DIR, { recursive: true });
-        // ONE-TIME: clear stale session data (will be reverted after deploy)
-        const staleFiles = fs.readdirSync(SESSION_DIR).filter(f => f.endsWith('.json') || f.startsWith('session-') || f.startsWith('tctoken-'));
-        staleFiles.forEach(f => fs.rmSync(path.join(SESSION_DIR, f), { force: true }));
         if (fs.existsSync(CREDS_PATH)) {
             try {
                 const creds = JSON.parse(fs.readFileSync(CREDS_PATH, 'utf8'));
@@ -472,9 +469,9 @@ async function startAdemolaXD() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
         },
-        markOnlineOnConnect: true,
-        generateHighQualityLinkPreview: true,
-        syncFullHistory: true,
+        markOnlineOnConnect: false,
+        generateHighQualityLinkPreview: false,
+        syncFullHistory: false,
         getMessage: async (key) => {
             let jid = jidNormalizedUser(key.remoteJid)
             let msg = await store.loadMessage(jid, key.id)
@@ -898,6 +895,7 @@ async function startAdemolaXD() {
             const antideleteConfig = loadAntideleteConfig();
 
             try {
+                await delay(5000);
                 const welcomeMsg = `╭─ 🤖 *${botName}* ─╮
 │ ✅ Connected & Ready
 │ 📌 Prefix: *${getPrefix()}*
@@ -909,6 +907,7 @@ async function startAdemolaXD() {
                 await ademolaBot.sendMessage(botNumber, { text: welcomeMsg });
             } catch (menuErr) {
                 console.error('Failed to send startup message:', menuErr);
+                await delay(5000);
                 await ademolaBot.sendMessage(botNumber, { text: `🤖 *${botName}* is ready!\n📌 Prefix: ${getPrefix()}\n📦 Commands: ${commands.length}` });
             }
 
@@ -942,7 +941,8 @@ async function startAdemolaXD() {
                 global.SESSION_ID = null;
                 console.log(chalk.red('Session logged out. Manual re-authentication required.'))
                 pairingCodeRequested = false;
-                return;
+                await delay(3000);
+                process.exit(1);
             }
             reconnectAttempts++;
             const backoffDelay = Math.min(3000 * Math.pow(2, reconnectAttempts), 60000);
