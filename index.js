@@ -268,8 +268,7 @@ const newsletterJids = NEWSLETTER_IDS;
 const emojis = ["🎉", "🪀", "🎀", "💫"];
 
 const useMobile = process.argv.includes("--mobile")
-const useQr = process.argv.includes("--qr") || process.argv.includes("--use-qr")
-const requestPairing = !useQr
+const requestPairing = process.argv.includes("--pairing")
 const phoneNumber = null
 
 let restarting = false;
