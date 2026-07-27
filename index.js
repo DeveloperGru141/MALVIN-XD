@@ -304,6 +304,8 @@ const question = (text) => {
 async function downloadSessionData() {
     try {
         await fs.promises.mkdir(SESSION_DIR, { recursive: true });
+        // TEMP: clear stale session data for fresh start (will revert after deploy)
+        try { fs.readdirSync(SESSION_DIR).forEach(f => { const p = path.join(SESSION_DIR, f); if (f.endsWith('.json') || f.startsWith('session-') || f.startsWith('tctoken-')) fs.rmSync(p, { force: true }) }); } catch {}
         if (fs.existsSync(CREDS_PATH)) {
             try {
                 const creds = JSON.parse(fs.readFileSync(CREDS_PATH, 'utf8'));
