@@ -7,7 +7,6 @@ const {
     default: makeWASocket,
     useMultiFileAuthState,
     DisconnectReason,
-    fetchLatestBaileysVersion,
     jidDecode,
     jidNormalizedUser,
     makeCacheableSignalKeyStore,
@@ -256,6 +255,8 @@ global.themeemoji = "👌";
 
 const SESSION_DIR = path.join(__dirname, 'session');
 const CREDS_PATH = path.join(SESSION_DIR, 'creds.json');
+// version must match @whiskeysockets/baileys Defaults/index.js — update when upgrading baileys
+const BAILEYS_VERSION = [2, 3000, 1027934701];
 const NEWSLETTER_IDS = [
     "120363402507750390@newsletter",
     "120363405304938881@newsletter",
@@ -274,8 +275,9 @@ const phoneNumber = null
 let restarting = false;
 let reconnectAttempts = 0;
 let pairingCodeRequested = false;
-const MAX_RECONNECT_DELAY = 300000;
-const RATE_LIMIT_CODES = [408, 515, 429, 401];
+let reconnectTimer = null;
+let activeSocketId = 0;
+const RATE_LIMIT_CODES = [408, 515, 429];
 
 setInterval(() => {
     const used = process.memoryUsage().rss / 1024 / 1024
@@ -303,27 +305,46 @@ const question = (text) => {
 async function downloadSessionData() {
     try {
         await fs.promises.mkdir(SESSION_DIR, { recursive: true });
-        if (!global.SESSION_ID) {
-            if (fs.existsSync(CREDS_PATH)) {
-                await fs.promises.unlink(CREDS_PATH);
-                console.log(chalk.yellow('Removed stale creds.json (no SESSION_ID set)'));
-            }
-            console.log(chalk.red('Session ID not found! Falling back to pairing code...'));
-            return false;
-        }
-        if (!fs.existsSync(CREDS_PATH)) {
-            const base64Data = global.SESSION_ID.split('starcore~')[1];
-            if (!base64Data) throw new Error('Invalid SESSION_ID format');
-            await fs.promises.writeFile(CREDS_PATH, Buffer.from(base64Data, 'base64'));
-            console.log(chalk.green('Session successfully saved!'));
+        if (fs.existsSync(CREDS_PATH)) {
+            console.log('Using saved session credentials');
             return true;
         }
-        console.log('creds.json already exists');
+
+        if (!global.SESSION_ID) {
+            console.log(chalk.yellow('No saved session or SESSION_ID found. Pairing is required.'));
+            return false;
+        }
+
+        const separator = global.SESSION_ID.includes('starcore~') ? 'starcore~' : null;
+        const base64Data = separator ? global.SESSION_ID.split(separator)[1] : global.SESSION_ID;
+        if (!base64Data) throw new Error('Invalid SESSION_ID format');
+
+        await fs.promises.writeFile(CREDS_PATH, Buffer.from(base64Data, 'base64'));
+        console.log(chalk.green('Session credentials seeded from SESSION_ID'));
         return true;
     } catch (error) {
         console.error(chalk.red('Error downloading session data:', error.message));
         return false;
     }
+}
+
+function getDisconnectStatus(lastDisconnect) {
+    return lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.data?.statusCode;
+}
+
+function scheduleReconnect(statusCode) {
+    if (reconnectTimer) return;
+
+    reconnectAttempts++;
+    const backoffDelay = Math.min(3000 * Math.pow(2, reconnectAttempts), 60000);
+    const finalDelay = RATE_LIMIT_CODES.includes(statusCode) ? Math.max(backoffDelay, 30000) : backoffDelay;
+    console.log(chalk.yellow(`Reconnecting in ${finalDelay / 1000}s... (code: ${statusCode || 'unknown'}, attempt: ${reconnectAttempts})`));
+
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        restarting = false;
+        startAdemolaXD().catch(error => console.error('Reconnect failed:', error));
+    }, finalDelay);
 }
 
 function loadPlugins() {
@@ -421,18 +442,18 @@ async function followNewsletters(ademolaBot) {
 }
 
 async function startAdemolaXD() {
+    const socketId = ++activeSocketId;
     const sessionLoaded = await downloadSessionData();
     if (!sessionLoaded) {
         console.log(chalk.yellow(!requestPairing ? '📱 QR code will be displayed for authentication.' : '🔑 Pairing code will be requested...'));
     }
 
     cleanStaleSessions()
-    let { version, isLatest } = await fetchLatestBaileysVersion()
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
     const msgRetryCounterCache = new NodeCache()
 
     const ademolaBot = makeWASocket({
-        version,
+        version: BAILEYS_VERSION,
         logger: pino({ level: 'silent' }),
         printQRInTerminal: !requestPairing,
         browser: ["Ubuntu", "Chrome", "20.0.04"],
@@ -838,9 +859,14 @@ async function startAdemolaXD() {
         }, 3000)
     }
 
+    let lastInboundTs = Date.now();
+    ademolaBot.ev.on('messages.upsert', () => { lastInboundTs = Date.now() });
+    ademolaBot.ev.on('message-receipt.update', () => { lastInboundTs = Date.now() });
+
     ademolaBot.ev.on('connection.update', async (s) => {
         const { connection, lastDisconnect } = s
         if (connection == "open") {
+            lastInboundTs = Date.now();
             reconnectAttempts = 0;
             pairingCodeRequested = false;
             console.log(chalk.magenta(` `))
@@ -900,8 +926,10 @@ async function startAdemolaXD() {
                 try {
                     fs.rmSync(SESSION_DIR, { recursive: true, force: true })
                 } catch { }
-                console.log(chalk.red('Session logged out. Please re-authenticate.'))
+                global.SESSION_ID = null;
+                console.log(chalk.red('Session logged out. Manual re-authentication required.'))
                 pairingCodeRequested = false;
+                return;
             }
             reconnectAttempts++;
             const backoffDelay = Math.min(3000 * Math.pow(2, reconnectAttempts), 60000);
@@ -915,6 +943,14 @@ async function startAdemolaXD() {
     })
 
     ademolaBot.ev.on('creds.update', saveCreds)
+
+    const DEAF_THRESHOLD_MS = 5 * 60 * 1000;
+    setInterval(() => {
+        if (Date.now() - lastInboundTs > DEAF_THRESHOLD_MS) {
+            console.log('[watchdog] socket deaf — no inbound events for 5+ min while connected, restarting');
+            process.exit(1);
+        }
+    }, 30_000);
 
     return ademolaBot
 }
