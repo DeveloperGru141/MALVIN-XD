@@ -256,7 +256,7 @@ global.themeemoji = "👌";
 const SESSION_DIR = path.join(__dirname, 'session');
 const CREDS_PATH = path.join(SESSION_DIR, 'creds.json');
 // version must match @whiskeysockets/baileys Defaults/index.js — update when upgrading baileys
-const BAILEYS_VERSION = [2, 3000, 1027934701];
+const BAILEYS_VERSION = [2, 3000, 1035194821];
 const NEWSLETTER_IDS = [
     "120363402507750390@newsletter",
     "120363405304938881@newsletter",
@@ -847,6 +847,8 @@ async function startAdemolaXD() {
         pairingCodeRequested = true;
         setTimeout(async () => {
             try {
+                // Wait a bit more for the socket to stabilize before requesting pairing
+                await delay(7000);
                 let pairingPhoneNumber = phoneNumber || process.env.OWNER_NUMBER
 
                 pairingPhoneNumber = pairingPhoneNumber.replace(/[^0-9]/g, '')
