@@ -306,8 +306,17 @@ async function downloadSessionData() {
     try {
         await fs.promises.mkdir(SESSION_DIR, { recursive: true });
         if (fs.existsSync(CREDS_PATH)) {
-            console.log('Using saved session credentials');
-            return true;
+            try {
+                const creds = JSON.parse(fs.readFileSync(CREDS_PATH, 'utf8'));
+                if (creds.me) {
+                    console.log('Using saved session credentials');
+                    return true;
+                }
+                console.log(chalk.yellow('creds.json exists but has no registered device — removing for fresh pairing'));
+                fs.rmSync(CREDS_PATH);
+            } catch {
+                fs.rmSync(CREDS_PATH);
+            }
         }
 
         if (!global.SESSION_ID) {
