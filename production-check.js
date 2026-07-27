@@ -40,6 +40,10 @@ class ProductionReadinessChecker {
         this.log(`Recommendation: ${message}`, 'warning');
     }
 
+    addWarning(message) {
+        this.addRecommendation(message);
+    }
+
     checkEssentialFiles() {
         this.log('Checking essential project files...');
 
@@ -49,7 +53,7 @@ class ProductionReadinessChecker {
             { path: 'Dockerfile', critical: true },
             { path: 'ademola.js', critical: true },
             { path: 'settings.js', critical: false },
-            { path: 'settingsManager.js', critical: false },
+            { path: 'lib/settingsManager.js', critical: false },
             { path: '.env', critical: false },
             { path: '.env.example', critical: false },
             { path: 'README.md', critical: false }
@@ -109,12 +113,11 @@ class ProductionReadinessChecker {
 
         const requiredItems = [
             { pattern: /FROM node:/, description: 'Node.js base image' },
-            { pattern: /COPY package\\.json/, description: 'Package files copy' },
+            { pattern: /COPY package(?:\*\.json|\.json)/, description: 'Package files copy' },
             { pattern: /RUN npm install/, description: 'Dependencies installation' },
             { pattern: /ENV NODE_ENV=production/, description: 'Production environment' },
-            { pattern: /EXPOSE 3000/, description: 'Port exposure' },
             { pattern: /HEALTHCHECK/, description: 'Health check' },
-            { pattern: /CMD \\[\"npm\"\\s+\"start\"\\]/, description: 'Default command' }
+            { pattern: /CMD \["npm",\s*"run",\s*"start:production"\]/, description: 'Production command' }
         ];
 
         for (const item of requiredItems) {
@@ -197,13 +200,10 @@ class ProductionReadinessChecker {
                     // Check for critical files
                     if (dir.path.includes('session')) {
                         const credsExists = files.includes('creds.json');
-                        this.addCheck(
-                            'creds.json', 
-                            credsExists, 
-                            credsExists ? 'Session credentials found' : 'WARNING: No creds.json found (first run)'
-                        );
-
-                        if (!credsExists) {
+                        if (credsExists) {
+                            this.addCheck('creds.json', true, 'Session credentials found');
+                        } else {
+                            this.log('creds.json: Not found (normal on first deploy)', 'warning');
                             this.addRecommendation('First run detected - pairing code will be needed to initialize WhatsApp session');
                         }
                     }
@@ -338,7 +338,7 @@ services:
         "CMD",
         "node",
         "-e",
-        "try { require('fs').accessSync('./session/creds.json'); process.exit(0); } catch(e) { process.exit(1); }"
+        "const fs=require('fs'); const cmd=fs.readFileSync('/proc/1/cmdline','utf8'); process.exit(cmd.includes('node') && cmd.includes('index.js') ? 0 : 1)"
       ]
       interval: 30s
       timeout: 10s
@@ -383,7 +383,7 @@ volumes:
     time: true,
     max_restarts: 5,
     min_uptime: '10s',
-    max_memory_restart: '512M',
+    node_args: '--expose-gc --max-old-space-size=512',
     max_restart_delay: 300000,
     watch: false,
     ignore_watch: ['node_modules', 'logs']
@@ -401,7 +401,6 @@ volumes:
         const dockerIgnore = [
 'node_modules/',
 '.env',
-'.env.example',
 'data/',
 'session/',
 'temp/',

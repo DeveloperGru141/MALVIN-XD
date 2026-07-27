@@ -23,7 +23,7 @@ services:
         "CMD",
         "node",
         "-e",
-        "try { require('fs').accessSync('./session/creds.json'); process.exit(0); } catch(e) { process.exit(1); }"
+        "const fs=require('fs'); const cmd=fs.readFileSync('/proc/1/cmdline','utf8'); process.exit(cmd.includes('node') && cmd.includes('index.js') ? 0 : 1)"
       ]
       interval: 30s
       timeout: 10s

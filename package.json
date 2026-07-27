@@ -10,6 +10,7 @@
     "start:pm2": "pm2 start index.js --name ademola-xd -i 1 --max-memory-restart 512M --node-args=\"--expose-gc --max-old-space-size=512\"",
     "cleanup": "node cleanup.js",
     "reset-session": "node reset-session.js",
+    "check:production": "node production-check.js",
     "start:clean": "npm run cleanup && npm run start:production",
     "start:fresh": "npm run reset-session && npm start",
     "install:panel": "npm install --legacy-peer-deps",

@@ -2,7 +2,7 @@ import subprocess
 import os
 import sys
 
-project_dir = "C:\\Users\\ADEMOLA\\Projects\\Ademola-xd"
+project_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(project_dir)
 
 print("🐳 Building Docker image for ademola-xd...")
