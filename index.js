@@ -308,11 +308,11 @@ async function downloadSessionData() {
         if (fs.existsSync(CREDS_PATH)) {
             try {
                 const creds = JSON.parse(fs.readFileSync(CREDS_PATH, 'utf8'));
-                if (creds.me) {
+                if (creds.registered === true) {
                     console.log('Using saved session credentials');
                     return true;
                 }
-                console.log(chalk.yellow('creds.json exists but has no registered device — removing for fresh pairing'));
+                console.log(chalk.yellow('creds.json exists but device is not registered — removing for fresh pairing'));
                 fs.rmSync(CREDS_PATH);
             } catch {
                 fs.rmSync(CREDS_PATH);
