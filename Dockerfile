@@ -13,7 +13,6 @@ RUN npm install --legacy-peer-deps --no-audit --no-fund
 COPY . .
 
 ENV NODE_ENV=production
-VOLUME ["/app/session", "/app/data", "/app/temp", "/app/tmp", "/app/logs"]
 
 # The bot does not listen on HTTP; this is informational only.
 # Port is not actually bound unless an HTTP server is started.
