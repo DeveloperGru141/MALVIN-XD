@@ -453,7 +453,7 @@ async function startAdemolaXD() {
     const socketId = ++activeSocketId;
     const sessionLoaded = await downloadSessionData();
     if (!sessionLoaded) {
-        console.log(chalk.yellow(!requestPairing ? '📱 QR code will be displayed for authentication.' : '🔑 Pairing code will be requested...'));
+        console.log(chalk.yellow(!requestPairing ? '📱 Scan the QR code in Railway logs with WhatsApp > Linked Devices > Link a Device' : '🔑 Pairing code will be requested...'));
     }
 
     cleanStaleSessions()

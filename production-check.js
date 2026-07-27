@@ -204,7 +204,7 @@ class ProductionReadinessChecker {
                             this.addCheck('creds.json', true, 'Session credentials found');
                         } else {
                             this.log('creds.json: Not found (normal on first deploy)', 'warning');
-                            this.addRecommendation('First run detected - pairing code will be needed to initialize WhatsApp session');
+                            this.addRecommendation('First run detected - a QR code will appear in Railway logs. Open WhatsApp > Linked Devices > Link a Device to scan it');
                         }
                     }
                 } catch (error) {
