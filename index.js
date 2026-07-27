@@ -947,6 +947,7 @@ async function startAdemolaXD() {
             console.log(chalk.yellow(`🔄 Reconnecting in ${finalDelay/1000}s... (code: ${statusCode || 'unknown'}, attempt: ${reconnectAttempts})`));
             await delay(finalDelay);
             restarting = false;
+            pairingCodeRequested = false;
             startAdemolaXD();
         }
     })
